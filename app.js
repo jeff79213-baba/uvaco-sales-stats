@@ -108,6 +108,7 @@ function renderControls() {
 function orderedMembers() {
   const childMap = new Map()
   for (const m of state.members.values()) {
+    if (!m.id) continue
     const k = m.parentId || null
     if (!childMap.has(k)) childMap.set(k, [])
     childMap.get(k).push(m.id)
@@ -135,6 +136,7 @@ function renderPyramid() {
   const byId = new Map()
 
   for (const [id, m] of state.members) {
+    if (!id) continue
     const mm = monthMem[id] || {}
     const personal = mm.p || 0
     const warn = personal === 0 ? warningStatus(m.expiry, dataMonth) : null
@@ -373,6 +375,7 @@ function renderSuggestions() {
   const matches = []
   for (const id of orderedMembers()) {
     const m = state.members.get(id)
+    if (!m) continue
     if (m.name.toLowerCase().includes(q) || id.toLowerCase().includes(q)) {
       matches.push({ id, m })
       if (matches.length >= 10) break

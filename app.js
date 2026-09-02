@@ -178,11 +178,16 @@ function renderPyramid() {
         card.innerHTML =
           `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
           `<span class="title">[${esc(n.title)}]</span><span class="pf">${fmtNum(n.personal)}</span>`
-      } else {
+      } else if (n.depth === 1) {
         card.className = 'card faded'
         card.innerHTML =
           `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
           `<span class="title">[${esc(n.title)}]</span>`
+      } else {
+        card.className = 'card warn ' + n.warn
+        card.innerHTML =
+          `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+          `<span class="expiry">${formatYyyyMm(n.expiry)}</span>`
       }
       card.addEventListener('click', () => showModal(n))
       el.appendChild(card)

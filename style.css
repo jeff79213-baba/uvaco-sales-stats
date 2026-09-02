@@ -84,6 +84,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .card .name { font-weight: 700; font-size: 14px; }
 .card .title { color: #6b7686; font-size: 12px; margin: 0 4px; }
 .card .pf { font-weight: 800; color: #1677ff; font-size: 14px; }
+.card.faded { opacity: .5; }
 
 .card.warn { cursor: pointer; }
 .card.warn .expiry { display: block; font-weight: 800; font-size: 13px; margin-top: 2px; letter-spacing: .5px; }

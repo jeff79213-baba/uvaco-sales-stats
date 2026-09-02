@@ -225,7 +225,7 @@ function showModal(n) {
     <tr><td>小組業績</td><td>${fmtNum(n.groupSales)}</td></tr>
     <tr><td>本月整組</td><td>${fmtNum(n.monthGroup)}</td></tr>
     <tr><td>整組累計</td><td>${fmtNum(n.groupTotal)}</td></tr>
-    ${n.expiry ? `<tr><td>會員到期</td><td class="${wc}">${formatYyyyMm(n.expiry)}（當月26日取消）</td></tr>` : ''}
+    ${n.expiry ? `<tr><td>會員到期</td><td class="${wc}">${formatYyyyMm(n.expiry)}</td></tr>` : ''}
     ${n.lastOrderMonth ? `<tr><td>最後訂貨月</td><td>${formatYyyyMm(n.lastOrderMonth)}</td></tr>` : ''}`
   $('modalBody').innerHTML =
     `<h3>${esc(n.name)}</h3><div class="sub">${esc(n.title)} · 第 ${dep2(n.depth)} 代</div>` +

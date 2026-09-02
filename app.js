@@ -52,7 +52,8 @@ const state = {
   months: [],           // [{id, month}] 由大而小
   selectedMonth: null,
   monthData: null,      // 當月快照 { members: {...} }
-  preview: null
+  preview: null,
+  expandedId: null      // 目前展開的第一代成員 id
 }
 
 /* ============ 資料載入 ============ */
@@ -96,7 +97,7 @@ async function loadMonth(month) {
 function renderAll() {
   renderControls()
   renderPyramid()
-  renderSalesEditor()
+  renderSuggestions()
   renderWarnPreview()
 }
 
@@ -152,6 +153,7 @@ function renderPyramid() {
 
   const childMap = new Map()
   for (const id of byId.keys()) {
+    if (!id) continue
     const k = byId.get(id).parentId || null
     if (!childMap.has(k)) childMap.set(k, [])
     childMap.get(k).push(id)
@@ -160,56 +162,124 @@ function renderPyramid() {
     list.sort((a, b) => (byId.get(a).order ?? 0) - (byId.get(b).order ?? 0))
   }
 
-  function subtreeVisible(id) {
-    const n = byId.get(id)
-    if (!n) return false
-    if (n.active) return true
-    return (childMap.get(id) || []).some(subtreeVisible)
-  }
+  const rendered = new Set()
 
   function renderNode(id, isRoot) {
+    if (rendered.has(id)) return null
+    rendered.add(id)
     const n = byId.get(id)
-    const kids = (childMap.get(id) || []).filter(subtreeVisible)
     const el = document.createElement('div')
     if (isRoot) el.className = 'pylon root'
     else el.className = 'pylon'
-    if (n.active || n.depth === 1) {
+
+    const appendCard = card => { card.addEventListener('click', () => showModal(n)); el.appendChild(card) }
+
+    if (n.depth === 0) {
+      // 根卡
       const card = document.createElement('div')
-      if (n.personal > 0) {
-        card.className = 'card'
-        card.innerHTML =
-          `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-          `<span class="title">[${esc(n.title)}]</span><span class="pf">${fmtNum(n.personal)}</span>`
-      } else if (n.depth === 1) {
-        card.className = 'card faded'
-        card.innerHTML =
-          `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-          `<span class="title">[${esc(n.title)}]</span>`
-      } else {
-        card.className = 'card warn ' + n.warn
-        card.innerHTML =
-          `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-          `<span class="expiry">${formatYyyyMm(n.expiry)}</span>`
-      }
-      card.addEventListener('click', () => showModal(n))
+      card.className = 'card root-card'
+      card.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span>` +
+        `<span class="pf">${fmtNum(n.personal)}</span>`
+      appendCard(card)
+    } else if (n.depth === 1) {
+      // 第一代：小窄卡，可展開
+      const isExpanded = state.expandedId === id
+      const card = document.createElement('div')
+      card.className = 'card firstgen' + (isExpanded ? ' expanded' : '')
+      const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
+      const arrow = isExpanded ? '▾' : '▸'
+      card.innerHTML =
+        `<span class="tgl">${arrow}</span>` +
+        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span>` + salesHtml
+      card.addEventListener('click', e => {
+        e.stopPropagation()
+        state.expandedId = (state.expandedId === id) ? null : id
+        renderPyramid()
+      })
       el.appendChild(card)
+    } else if (n.active && n.personal > 0) {
+      // 展開後有感節點：小窄卡
+      const card = document.createElement('div')
+      card.className = 'card'
+      card.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span><span class="pf">${fmtNum(n.personal)}</span>`
+      appendCard(card)
+    } else if (n.active) {
+      // 展開後有感（到期警示）節點
+      const card = document.createElement('div')
+      card.className = 'card warn ' + n.warn
+      card.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+        `<span class="expiry">${formatYyyyMm(n.expiry)}</span>`
+      appendCard(card)
     } else {
+      // 被動節點：小點（不佔卡）
       const dot = document.createElement('div')
       dot.className = 'dot'
       el.appendChild(dot)
+      el._noCard = true
     }
-    if (kids.length) {
-      const wrap = document.createElement('div')
-      wrap.className = 'children'
-      for (const k of kids) wrap.appendChild(renderNode(k, false))
-      el.appendChild(wrap)
+
+    // 根：永遠展開所有第一代
+    if (n.depth === 0) {
+      const rawKids = childMap.get(id) || []
+      if (rawKids.length) {
+        const wrap = document.createElement('div')
+        wrap.className = 'children fg-row'
+        for (const k of rawKids) {
+          const childEl = renderNode(k, false)
+          if (childEl) wrap.appendChild(childEl)
+        }
+        el.appendChild(wrap)
+      }
+    }
+    // 第一代展開：扁平顯示其下所有有感後代（用代數標籤）
+    if (n.depth === 1 && state.expandedId === id) {
+      const activeList = []
+      const seen = new Set()
+      const stack = childMap.get(id) || []
+      while (stack.length) {
+        const cid = stack.shift()
+        if (seen.has(cid) || !byId.has(cid)) continue
+        seen.add(cid)
+        const c = byId.get(cid)
+        if (c.active) activeList.push(cid)
+        for (const k of childMap.get(cid) || []) stack.push(k)
+      }
+      activeList.sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
+      if (activeList.length) {
+        const wrap = document.createElement('div')
+        wrap.className = 'expanded-list'
+        for (const cid of activeList) {
+          const c = byId.get(cid)
+          const card = document.createElement('div')
+          if (c.personal > 0) {
+            card.className = 'card gen-tag'
+            card.innerHTML =
+              `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+              `<span class="name">${esc(c.name)}</span>` +
+              `<span class="title">[${esc(c.title)}]</span><span class="pf">${fmtNum(c.personal)}</span>`
+          } else {
+            card.className = 'card gen-tag warn ' + c.warn
+            card.innerHTML =
+              `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+              `<span class="name">${esc(c.name)}</span>` +
+              `<span class="expiry">${formatYyyyMm(c.expiry)}</span>`
+          }
+          card.addEventListener('click', () => showModal(c))
+          wrap.appendChild(card)
+        }
+        el.appendChild(wrap)
+      }
     }
     return el
   }
 
-  const allDepth1 = [...byId.keys()].filter(id => byId.get(id).depth === 1)
-  const activeOrPath = (childMap.get(null) || []).filter(subtreeVisible)
-  const roots = [...new Set([...activeOrPath, ...allDepth1])]
+  const roots = [...byId.keys()].filter(id => byId.get(id).depth === 0)
   const box = $('pyramid')
   box.innerHTML = ''
   if (!roots.length) {
@@ -293,7 +363,7 @@ $('monthSelect').addEventListener('change', async e => {
   $('importMonth').value = state.selectedMonth
   await loadMonth(state.selectedMonth)
   renderPyramid()
-  renderSalesEditor()
+  renderSuggestions()
   renderWarnPreview()
 })
 

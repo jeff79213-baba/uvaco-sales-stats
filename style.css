@@ -86,6 +86,54 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .card .pf { font-weight: 800; color: #1677ff; font-size: 14px; }
 .card.faded { opacity: .5; }
 
+/* 根卡 */
+.card.root-card { min-width: 160px; font-size: 14px; }
+.card.root-card .pf { font-size: 16px; }
+
+/* 第一代：小窄卡 + 展開箭頭 */
+.card.firstgen {
+  min-width: 92px; padding: 5px 9px; font-size: 12px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+}
+.card.firstgen .tgl { color: #1677ff; font-size: 10px; font-weight: 800; }
+.card.firstgen .name { font-size: 13px; }
+.card.firstgen.expanded { border-color: #1677ff; background: #f0f6ff; }
+.card.firstgen .pf { font-size: 13px; }
+
+/* 有感的展開後節點：小窄卡壓縮 */
+.card:not(.root-card):not(.firstgen) { padding: 4px 9px; min-width: 96px; font-size: 12px; }
+.card:not(.root-card):not(.firstgen) .name { font-size: 13px; }
+.card:not(.root-card):not(.firstgen) .title { font-size: 11px; }
+.card:not(.root-card):not(.firstgen) .pf { font-size: 13px; }
+
+/* 壓縮樹間距（不佔一整格） */
+#pyramid .children { gap: 8px; margin-top: 1px; padding-top: 10px; }
+#pyramid .pylon:not(.root) > .card, #pyramid .pylon:not(.root) > .dot { margin-top: 10px; }
+#pyramid .pylon:not(.root)::before { height: 8px; }
+#pyramid .children::before { height: 2px; }
+
+/* 被動中間節點：小圓點 */
+#pyramid .dot { width: 8px; height: 8px; }
+
+/* 展開的第一代：扁平有感後代列表 */
+#pyramid .expanded-list {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 8px; margin-top: 10px; padding-top: 10px; position: relative;
+}
+#pyramid .expanded-list::before {
+  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: #b8c2d4;
+}
+#pyramid .card.gen-tag {
+  min-width: 84px; padding: 5px 8px; font-size: 12px; display: inline-flex;
+  align-items: center; justify-content: center; gap: 3px; flex-wrap: wrap;
+}
+#pyramid .card.gen-tag .gen-tag-label {
+  font-size: 10px; color: #fff; background: #1677ff; border-radius: 8px;
+  padding: 1px 6px; font-weight: 700; white-space: nowrap;
+}
+#pyramid .card.gen-tag.warn .gen-tag-label { background: #f59e0b; }
+#pyramid .card.gen-tag.warn.red .gen-tag-label { background: #dc2626; }
+
 .card.warn { cursor: pointer; }
 .card.warn .expiry { display: block; font-weight: 800; font-size: 13px; margin-top: 2px; letter-spacing: .5px; }
 .card.warn.orange { background: #fff8e6; border: 2px solid #f59e0b; }

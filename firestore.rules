@@ -1,10 +1,11 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 葡眾業績統計（uvaco）— 僅限兩個管理員帳號
+    // 葡眾業績統計（uvaco）— 僅限兩個管理員帳號（email 或 uid 白名單）
     function isUvacoUser() {
       return request.auth != null
-        && (request.auth.token.email in ['laoye@uvaco.app', 'furen@uvaco.app']);
+        && (request.auth.token.email in ['laoye@uvaco.app', 'furen@uvaco.app']
+            || request.auth.uid in ['AiYX2xARkAVQbaCVznKKvv2REX03', 'jkhOnw7BJbPJpAWJbWEWojnOUif2']);
     }
     match /uv_members/{docId} {
       allow read, write: if isUvacoUser();

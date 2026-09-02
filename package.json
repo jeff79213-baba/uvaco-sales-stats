@@ -8,6 +8,7 @@
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "firebase-admin": "^14.3.0",
     "vitest": "^3.0.0"
   }
 }

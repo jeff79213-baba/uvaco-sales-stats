@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 葡眾業績統計（uvaco）— 僅限兩個管理員帳號
+    function isUvacoUser() {
+      return request.auth != null
+        && (request.auth.token.email in ['laoye@uvaco.app', 'furen@uvaco.app']);
+    }
+    match /uv_members/{docId} {
+      allow read, write: if isUvacoUser();
+    }
+    match /uv_months/{docId} {
+      allow read, write: if isUvacoUser();
+    }
+  }
+}

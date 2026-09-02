@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>葡眾業績統計 — 金字塔</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<section id="loginView" class="center-page">
+  <div class="login-card">
+    <h1>葡眾業績統計</h1>
+    <p class="hint">請登入（帳號：老爺 / 夫人）</p>
+    <div class="field">
+      <label>帳號</label>
+      <input id="loginAccount" placeholder="老爺 / 夫人 / email" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>密碼</label>
+      <div class="pw-wrap">
+        <input type="password" id="loginPassword" placeholder="密碼" style="padding-right:44px" autocomplete="current-password">
+        <button type="button" class="pw-toggle" aria-label="顯示/隱藏密碼">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <button id="loginBtn" class="primary">登入</button>
+    <div id="loginError" class="error"></div>
+  </div>
+</section>
+
+<section id="mainView" class="hidden">
+  <header>
+    <div class="brand">葡眾業績統計</div>
+    <span id="whoAmI"></span>
+    <div class="month-select">
+      <label>月份</label>
+      <select id="monthSelect"></select>
+    </div>
+    <nav>
+      <button data-tab="pyramid" class="tab active">金字塔</button>
+      <button data-tab="admin" class="tab">後台設定</button>
+    </nav>
+    <button id="logoutBtn">登出</button>
+  </header>
+
+  <main>
+    <div id="pyramidTab">
+      <div class="legend">
+        <span><i class="sw s-white"></i>當月有個人業績</span>
+        <span><i class="sw s-orange"></i>剩 2 個月到期</span>
+        <span><i class="sw s-red"></i>最後 1 個月到期</span>
+        <span><i class="sw s-dot"></i>銜接（無業績）</span>
+      </div>
+      <div id="pyramid"></div>
+      <div id="pyramidEmpty" class="hidden">此月份尚無資料，請到「後台設定」貼上組織資料。</div>
+    </div>
+
+    <div id="adminTab" class="hidden">
+      <div class="admin-section">
+        <h2>① 貼上組織資料（整份為準）</h2>
+        <div class="row">
+          <label>月份 (YYYYMM)</label>
+          <input id="importMonth" inputmode="numeric" maxlength="6" placeholder="202609">
+        </div>
+        <textarea id="importText" rows="10" placeholder="貼上組織關係圖…"></textarea>
+        <div class="btn-row">
+          <button id="parseBtn">解析預覽</button>
+          <button id="importBtn" class="primary" disabled>確認匯入此月份</button>
+        </div>
+        <div id="parseResult"></div>
+      </div>
+
+      <div class="admin-section">
+        <h2>② 個人業績手動編輯（提早輸入用）</h2>
+        <div class="row">
+          <input id="salesSearch" placeholder="搜尋姓名／編號…">
+        </div>
+        <div id="salesEditor"></div>
+        <div class="btn-row">
+          <button id="saveSalesBtn" class="primary">儲存個人業績</button>
+        </div>
+        <div id="salesSaveMsg" class="msg"></div>
+      </div>
+
+      <div class="admin-section">
+        <h2>③ 最後訂貨／到期匯入（比對補上真到期日）</h2>
+        <p class="hint">每行：會員編號／姓名＋訂貨月。例：<code>B082282 林莉雯 202509</code>、<code>陳育慧 2025/8</code></p>
+        <textarea id="orderImportText" rows="6" placeholder="B082282 林莉雯 202509&#10;陳育慧 2025/8&#10;W000813 202603"></textarea>
+        <div class="btn-row">
+          <button id="orderImportBtn" class="primary">比對匯入到期</button>
+        </div>
+        <div id="orderImportResult" class="msg"></div>
+      </div>
+
+      <div class="admin-section">
+        <h2>到期警示預覽（依目前月份）</h2>
+        <div id="warnPreview"></div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<div id="modal" class="hidden">
+  <div class="modal-card">
+    <button id="modalClose" class="modal-close">&times;</button>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script type="module" src="app.js"></script>
+</body>
+</html>

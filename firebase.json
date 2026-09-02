@@ -1,0 +1,34 @@
+{
+  "hosting": {
+    "site": "uvaco-sk",
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      "firestore.rules",
+      ".git/**",
+      "node_modules/**",
+      "tests/**",
+      "_setup/**",
+      "**/.*",
+      "*.md",
+      "*.txt",
+      "package.json",
+      "package-lock.json"
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(html|js|css)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

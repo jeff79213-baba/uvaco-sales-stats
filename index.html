@@ -109,9 +109,23 @@
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script type="module" src="app.js"></script>
+<script src="vendor/firebase-app-compat.js"></script>
+<script src="vendor/firebase-auth-compat.js"></script>
+<script src="vendor/firebase-firestore-compat.js"></script>
+<script>
+if (typeof firebase === 'undefined') {
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('loginError')
+    if (el) el.textContent = 'Firebase 核心程式載入失敗，請檢查網路後重新整理。'
+  })
+}
+window.addEventListener('error', function (e) {
+  var el = document.getElementById('loginError')
+  if (el && !el.textContent) el.textContent = '頁面發生錯誤：' + (e.message || 'unknown')
+})
+</script>
+<script type="module" src="parse.js"></script>
+<script type="module" src="expiry.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

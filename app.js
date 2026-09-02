@@ -1,9 +1,7 @@
-import { parseOrgText } from './parse.js'
-import {
-  computeExpiry, warningStatus, formatYyyyMm, expiryFromOrderMonth
-} from './expiry.js'
-
 /* ============ Firebase ============ */
+// 純函式 parseOrgText / computeExpiry / warningStatus / formatYyyyMm /
+// expiryFromOrderMonth 由 parse.js / expiry.js 以 window.* 提供。
+
 firebase.initializeApp({
   apiKey: 'AIzaSyD3quPJCOUoUH_Um5UceWXYuUXfRpJEuyo',
   authDomain: 'opencode-sk.firebaseapp.com',

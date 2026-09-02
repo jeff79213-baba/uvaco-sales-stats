@@ -80,3 +80,10 @@ export function parseOrgText(text) {
   }
   return { nodes, errors, roots }
 }
+
+// 瀏覽器版本（本檔亦以 <script type="module"> 載入，供傳統 script 的 app.js 使用）
+if (typeof window !== 'undefined') {
+  window.parseNum = parseNum
+  window.parseLine = parseLine
+  window.parseOrgText = parseOrgText
+}

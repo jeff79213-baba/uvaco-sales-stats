@@ -69,3 +69,12 @@ export function expiryFromOrderMonth(orderMonth) {
   if (!Number.isFinite(y) || y < 2000) return null
   return addMonths(toYyyyMm(y, m), 12)
 }
+
+// 瀏覽器版本（本檔亦以 <script type="module"> 載入，供傳統 script 的 app.js 使用）
+if (typeof window !== 'undefined') {
+  window.computeExpiry = computeExpiry
+  window.warningStatus = warningStatus
+  window.formatYyyyMm = formatYyyyMm
+  window.diffMonths = diffMonths
+  window.expiryFromOrderMonth = expiryFromOrderMonth
+}

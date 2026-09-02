@@ -364,52 +364,75 @@ $('importBtn').addEventListener('click', async () => {
   $('importBtn').disabled = true
 })
 
-/* ============ 後台：手動編輯個人業績 ============ */
-function renderSalesEditor() {
-  const monthMem = state.monthData?.members || {}
-  const box = $('salesEditor')
+/* ============ 後台：手動編輯個人業績（autocomplete） ============ */
+function renderSuggestions() {
+  const q = ($('manualSearch').value || '').trim().toLowerCase()
+  const box = $('manualSuggestions')
   box.innerHTML = ''
-  if (!state.members.size) { box.textContent = '（尚無成員資料）'; return }
-  const q = ($('salesSearch').value || '').trim().toLowerCase()
+  if (!q || !state.members.size) { box.style.display = 'none'; return }
+  const matches = []
   for (const id of orderedMembers()) {
     const m = state.members.get(id)
-    if (q && !(m.name.toLowerCase().includes(q) || id.toLowerCase().includes(q))) continue
-    const row = document.createElement('div')
-    row.className = 'sed-row'
-    row.innerHTML =
-      `<span class="gen">${dep2(m.depth)}</span><span class="name">${esc(m.name)}</span>` +
-      `<span class="title">[${esc(m.title)}]</span>`
-    const inp = document.createElement('input')
-    inp.type = 'number'
-    inp.min = '0'
-    inp.step = '1'
-    inp.dataset.id = id
-    inp.value = monthMem[id]?.p || 0
-    row.appendChild(inp)
-    box.appendChild(row)
+    if (m.name.toLowerCase().includes(q) || id.toLowerCase().includes(q)) {
+      matches.push({ id, m })
+      if (matches.length >= 10) break
+    }
   }
+  if (!matches.length) { box.style.display = 'none'; return }
+  for (const { id, m } of matches) {
+    const div = document.createElement('div')
+    div.className = 'sug-item'
+    div.textContent = `${dep2(m.depth)} ${id} ${m.name} [${m.title}]`
+    div.addEventListener('click', () => showManualCard(id))
+    box.appendChild(div)
+  }
+  box.style.display = 'block'
 }
 
-$('salesSearch').addEventListener('input', renderSalesEditor)
+function showManualCard(id) {
+  const m = state.members.get(id)
+  if (!m) return
+  const monthMem = state.monthData?.members || {}
+  const curP = monthMem[id]?.p || 0
+  const card = $('manualCard')
+  card.innerHTML =
+    `<div class="mc-name">${dep2(m.depth)} ${id} ${esc(m.name)} [${esc(m.title)}]</div>` +
+    `<div class="mc-cur">本月目前個人業績：<b>${fmtNum(curP)}</b></div>` +
+    `<input type="number" id="manualValue" min="0" step="1" value="${curP}">` +
+    `<div class="mc-actions">` +
+    `<button id="manualSaveBtn" class="btn btn-primary">存入</button> ` +
+    `<button id="manualCancelBtn" class="btn">取消</button></div>` +
+    `<p id="manualCardMsg" class="msg hidden"></p>`
+  card.classList.remove('hidden')
+  $('manualSuggestions').style.display = 'none'
+  $('manualSearch').value = ''
+  $('manualSaveBtn').addEventListener('click', () => saveManual(id))
+  $('manualCancelBtn').addEventListener('click', () => card.classList.add('hidden'))
+}
 
-$('saveSalesBtn').addEventListener('click', async () => {
-  if (!state.selectedMonth) return
-  const inputs = document.querySelectorAll('.sed-row input[data-id]')
+async function saveManual(id) {
+  const month = state.selectedMonth
+  if (!month) return
+  const v = Math.max(0, parseInt($('manualValue').value, 10) || 0)
   const members = { ...(state.monthData?.members || {}) }
-  let changed = 0
-  for (const inp of inputs) {
-    const id = inp.dataset.id
-    const v = Math.max(0, parseInt(inp.value, 10) || 0)
-    const prev = members[id] || {}
-    if ((prev.p || 0) !== v) { members[id] = { ...prev, p: v }; changed++ }
+  const prev = members[id] || {}
+  const wasZero = (prev.p || 0) === 0
+  members[id] = { ...prev, p: v }
+  await monthsCol.doc(month).set({ members }, { merge: true })
+  if (wasZero && v > 0) {
+    const expiry = computeExpiry({ storedExpiry: null, personal: v, dataMonth: month, todayYyyyMm: month })
+    await membersCol.doc(id).set({ expiry, lastOrderMonth: month }, { merge: true })
   }
-  await monthsCol.doc(state.selectedMonth).set({ members }, { merge: true })
-  await loadMonth(state.selectedMonth)
+  await loadMonth(month)
   renderPyramid()
-  const msg = $('salesSaveMsg')
+  const m = state.members.get(id)
+  const msg = $('manualCardMsg')
   msg.className = 'msg ok'
-  msg.textContent = `✅ 已儲存 ${state.selectedMonth}（變更 ${changed} 位）。注意：下次整份貼上會以貼上值覆蓋。`
-})
+  msg.textContent = `✅ 已儲存 ${m?.name || id} ${month}（${v}）`
+  setTimeout(() => $('manualCard').classList.add('hidden'), 2000)
+}
+
+$('manualSearch').addEventListener('input', renderSuggestions)
 
 /* ============ 後台：最後訂貨／到期匯入 ============ */
 $('orderImportBtn').addEventListener('click', async () => {

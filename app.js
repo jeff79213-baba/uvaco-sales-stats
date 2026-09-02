@@ -171,7 +171,7 @@ function renderPyramid() {
     const el = document.createElement('div')
     if (isRoot) el.className = 'pylon root'
     else el.className = 'pylon'
-    if (n.active) {
+    if (n.active || n.depth === 1) {
       const card = document.createElement('div')
       if (n.personal > 0) {
         card.className = 'card'
@@ -179,10 +179,10 @@ function renderPyramid() {
           `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
           `<span class="title">[${esc(n.title)}]</span><span class="pf">${fmtNum(n.personal)}</span>`
       } else {
-        card.className = 'card warn ' + n.warn
+        card.className = 'card faded'
         card.innerHTML =
           `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-          `<span class="expiry">${formatYyyyMm(n.expiry)}</span>`
+          `<span class="title">[${esc(n.title)}]</span>`
       }
       card.addEventListener('click', () => showModal(n))
       el.appendChild(card)
@@ -200,7 +200,9 @@ function renderPyramid() {
     return el
   }
 
-  const roots = (childMap.get(null) || []).filter(subtreeVisible)
+  const allDepth1 = [...byId.keys()].filter(id => byId.get(id).depth === 1)
+  const activeOrPath = (childMap.get(null) || []).filter(subtreeVisible)
+  const roots = [...new Set([...activeOrPath, ...allDepth1])]
   const box = $('pyramid')
   box.innerHTML = ''
   if (!roots.length) {

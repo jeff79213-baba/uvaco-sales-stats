@@ -38,6 +38,11 @@ describe('computeExpiry', () => {
   it('無業績但有原存 → 保留原存', () => {
     expect(computeExpiry({ storedExpiry: '202603', personal: 0, dataMonth: '202609', todayYyyyMm: '202609' })).toBe('202603')
   })
+
+  it('storedExpiry=null 且有業績 → dataMonth+12（手動輸入觸發）', () => {
+    const result = computeExpiry({ storedExpiry: null, personal: 100, dataMonth: '202609', todayYyyyMm: '202609' })
+    expect(result).toBe('202709')
+  })
 })
 
 describe('warningStatus', () => {

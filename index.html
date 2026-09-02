@@ -74,14 +74,14 @@
 
       <div class="admin-section">
         <h2>② 個人業績手動編輯（提早輸入用）</h2>
-        <div class="row">
-          <input id="salesSearch" placeholder="搜尋姓名／編號…">
+        <div id="manualSection">
+          <label style="font-weight:700">個人業績手動編輯</label>
+          <input type="text" id="manualSearch" placeholder="搜尋姓名或編號…" autocomplete="off" style="width:100%;padding:8px;border:1px solid #bbb;border-radius:6px;margin-top:4px">
+          <div id="manualSuggestions" class="suggestions-list"></div>
+          <div id="manualCard" class="manual-card hidden"></div>
+          <p id="manualSaveMsg" class="msg hidden"></p>
+          <button id="saveSalesBtn" class="btn hidden" style="margin-top:8px">儲存全部</button>
         </div>
-        <div id="salesEditor"></div>
-        <div class="btn-row">
-          <button id="saveSalesBtn" class="primary">儲存個人業績</button>
-        </div>
-        <div id="salesSaveMsg" class="msg"></div>
       </div>
 
       <div class="admin-section">

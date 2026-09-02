@@ -148,3 +148,17 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .detail-table td:last-child { text-align: right; font-weight: 700; }
 .detail-table .expiry-red { color: #b91c1c; }
 .detail-table .expiry-orange { color: #b45309; }
+
+/* 手動編輯 autocomplete+卡片 */
+.suggestions-list { max-height:200px; overflow-y:auto; border:1px solid #d0d0d0; border-radius:6px; margin-top:4px; display:none }
+.suggestions-list .sug-item { padding:8px 12px; cursor:pointer; font-size:14px; border-bottom:1px solid #eee }
+.suggestions-list .sug-item:last-child { border-bottom:none }
+.suggestions-list .sug-item:hover { background:#e8f0fe }
+.manual-card { background:#f8f9fa; border:1px solid #d0d0d0; border-radius:8px; padding:12px; margin-top:8px }
+.manual-card .mc-name { font-weight:bold; font-size:14px }
+.manual-card .mc-cur { color:#666; margin:8px 0 }
+.manual-card .mc-actions { margin-top:8px }
+.manual-card .mc-actions .btn { padding:6px 16px; border:none; border-radius:4px; cursor:pointer; font-size:13px; margin-right:6px }
+.manual-card .mc-actions .btn-primary { background:#1677ff; color:white }
+.manual-card .mc-actions .btn-primary:hover { background:#0958d9 }
+.manual-card input[type=number] { width:100px; padding:4px 8px; border:1px solid #bbb; border-radius:4px; font-size:14px }

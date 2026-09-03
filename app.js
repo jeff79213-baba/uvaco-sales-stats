@@ -187,6 +187,7 @@ function renderPyramid() {
     return card
   }
 
+  // 收集某第一代下所有有感後代；childMap 為 id->子id 清單
   function collectActiveDesc(id) {
     const list = []
     const seen = new Set()
@@ -199,8 +200,50 @@ function renderPyramid() {
       if (c.active) list.push(cid)
       for (const k of childMap.get(cid) || []) stack.push(k)
     }
-    list.sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
     return list
+  }
+
+  // 建立「有感後代」樹：每個有感節點連到最近的「有感祖先」（在同一個有感後代集合內）
+  function buildActiveForest(rootId, activeIds) {
+    const actSet = new Set(activeIds)
+    const forest = []      // 頂點：沒有有感祖先的有感節點
+    const childrenOf = new Map()  // key: 有感祖先id -> [有感後代id]
+
+    // 依深度排序，給每個有感節點找其最近有感祖先
+    const ordered = [...activeIds].sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
+
+    // 對每個有感節點，沿 parentId 鏈往上找第一個「也在 activeIds 且有感者」
+    for (const cid of ordered) {
+      let anc = byId.get(cid).parentId
+      let found = null
+      while (anc) {
+        const ancN = byId.get(anc)
+        if (ancN && actSet.has(anc)) { found = anc; break }
+        anc = ancN ? ancN.parentId : null
+      }
+      if (found) {
+        if (!childrenOf.has(found)) childrenOf.set(found, [])
+        childrenOf.get(found).push(cid)
+      } else {
+        forest.push(cid)
+      }
+    }
+    return { forest, childrenOf }
+  }
+
+  // 垂直渲染一棵有感子樹（遞迴）
+  function renderActiveNode(cid, forestChildren) {
+    const wrap = document.createElement('div')
+    wrap.className = 'chain-node'
+    wrap.appendChild(activeCard(cid))
+    const kids = forestChildren.get(cid) || []
+    if (kids.length) {
+      const sub = document.createElement('div')
+      sub.className = 'chain-children'
+      for (const k of kids) sub.appendChild(renderActiveNode(k, forestChildren))
+      wrap.appendChild(sub)
+    }
+    return wrap
   }
 
   function activeCard(id) {
@@ -269,7 +312,13 @@ function renderPyramid() {
       const listWrap = document.createElement('div')
       listWrap.className = 'expanded-list'
       if (list.length) {
-        for (const cid of list) listWrap.appendChild(activeCard(cid))
+        const { forest, childrenOf } = buildActiveForest(state.expandedId, list)
+        if (forest.length) {
+          for (const cid of forest) listWrap.appendChild(renderActiveNode(cid, childrenOf))
+        } else {
+          // 理論上不應發生：forest 至少含最頂層有感者
+          for (const cid of list) listWrap.appendChild(activeCard(cid))
+        }
       } else {
         listWrap.textContent = '（此第一代本月無有感後代）'
         listWrap.classList.add('empty')

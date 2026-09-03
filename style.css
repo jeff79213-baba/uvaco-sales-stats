@@ -121,13 +121,44 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 /* 被動中間節點：小圓點 */
 #pyramid .dot { width: 8px; height: 8px; }
 
-/* 展開的第一代：扁平有感後代列表 */
+/* 展開的第一代：有感後代垂直分線 */
 #pyramid .expanded-list {
-  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  gap: 8px; margin-top: 10px; padding-top: 10px; position: relative;
+  display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
+  gap: 30px; margin-top: 12px; padding-top: 4px;
 }
-#pyramid .expanded-list::before {
-  content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 2px; background: #b8c2d4;
+#pyramid .chain-node {
+  display: flex; flex-direction: column; align-items: center; position: relative;
+}
+/* 父卡下方：往下接的一條垂直虛線 */
+#pyramid .chain-node > .card {
+  position: relative;
+}
+#pyramid .chain-node > .chain-children {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 6px;
+}
+/* 連接線（垂直虛線） */
+#pyramid .chain-node > .card::after,
+#pyramid .chain-children > .chain-node:first-child::before,
+#pyramid .chain-children > .chain-node:not(:first-child)::before {
+  content: ''; position: static; width: 2px; height: 18px;
+  background: repeating-linear-gradient(to bottom, #b8c2d4 0 4px, transparent 4px 8px);
+  display: block; margin: 0 auto;
+}
+#pyramid .chain-node > .card::after {
+  margin-top: 4px;
+}
+#pyramid .chain-children > .chain-node::before {
+  margin-bottom: 4px;
+}
+/* 多個子分支：讓子節點左右並排而非疊成單一長串 */
+#pyramid .expanded-list .chain-children {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 26px;
+}
+#pyramid .expanded-list .chain-children > .chain-node {
+  flex-direction: column;
 }
 #pyramid .card.gen-tag {
   min-width: 84px; padding: 5px 8px; font-size: 12px; display: inline-flex;

@@ -162,124 +162,69 @@ function renderPyramid() {
     list.sort((a, b) => (byId.get(a).order ?? 0) - (byId.get(b).order ?? 0))
   }
 
-  const rendered = new Set()
+  // ===== 輔助：依原職給底色 class =====
+  function rankClass(title) {
+    if (!title) return ''
+    if (title.includes('翡翠')) return 'rank-jade'
+    if (title.includes('珍珠')) return 'rank-pearl'
+    return ''
+  }
 
-  function renderNode(id, isRoot) {
-    if (rendered.has(id)) return null
-    rendered.add(id)
+  function firstGenCard(id) {
     const n = byId.get(id)
-    const el = document.createElement('div')
-    if (isRoot) el.className = 'pylon root'
-    else el.className = 'pylon'
+    const isExpanded = state.expandedId === id
+    const card = document.createElement('div')
+    card.className = 'card firstgen' + (isExpanded ? ' expanded' : '') + ' ' + rankClass(n.title)
+    const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
+    card.innerHTML =
+      `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+      `<span class="title">[${esc(n.title)}]</span>` + salesHtml
+    card.addEventListener('click', () => {
+      // 點第一代：進入/返回展開檢視（再次點同一張則返回總覽）
+      state.expandedId = (state.expandedId === id) ? null : id
+      renderPyramid()
+    })
+    return card
+  }
 
-    const appendCard = card => { card.addEventListener('click', () => showModal(n)); el.appendChild(card) }
+  function collectActiveDesc(id) {
+    const list = []
+    const seen = new Set()
+    const stack = childMap.get(id) || []
+    while (stack.length) {
+      const cid = stack.shift()
+      if (seen.has(cid) || !byId.has(cid)) continue
+      seen.add(cid)
+      const c = byId.get(cid)
+      if (c.active) list.push(cid)
+      for (const k of childMap.get(cid) || []) stack.push(k)
+    }
+    list.sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
+    return list
+  }
 
-    if (n.depth === 0) {
-      // 根卡
-      const card = document.createElement('div')
-      card.className = 'card root-card'
+  function activeCard(id) {
+    const c = byId.get(id)
+    const card = document.createElement('div')
+    if (c.personal > 0) {
+      card.className = 'card gen-tag ' + rankClass(c.title)
       card.innerHTML =
-        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-        `<span class="title">[${esc(n.title)}]</span>` +
-        `<span class="pf">${fmtNum(n.personal)}</span>`
-      appendCard(card)
-    } else if (n.depth === 1) {
-      // 第一代：小窄卡，可展開
-      const isExpanded = state.expandedId === id
-      const card = document.createElement('div')
-      card.className = 'card firstgen' + (isExpanded ? ' expanded' : '')
-      const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
-      const arrow = isExpanded ? '▾' : '▸'
-      card.innerHTML =
-        `<span class="tgl">${arrow}</span>` +
-        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-        `<span class="title">[${esc(n.title)}]</span>` + salesHtml
-      card.addEventListener('click', e => {
-        e.stopPropagation()
-        state.expandedId = (state.expandedId === id) ? null : id
-        renderPyramid()
-      })
-      el.appendChild(card)
-    } else if (n.active && n.personal > 0) {
-      // 展開後有感節點：小窄卡
-      const card = document.createElement('div')
-      card.className = 'card'
-      card.innerHTML =
-        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-        `<span class="title">[${esc(n.title)}]</span><span class="pf">${fmtNum(n.personal)}</span>`
-      appendCard(card)
-    } else if (n.active) {
-      // 展開後有感（到期警示）節點
-      const card = document.createElement('div')
-      card.className = 'card warn ' + n.warn
-      card.innerHTML =
-        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-        `<span class="expiry">${formatYyyyMm(n.expiry)}</span>`
-      appendCard(card)
+        `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+        `<span class="name">${esc(c.name)}</span>` +
+        `<span class="title">[${esc(c.title)}]</span><span class="pf">${fmtNum(c.personal)}</span>`
     } else {
-      // 被動節點：小點（不佔卡）
-      const dot = document.createElement('div')
-      dot.className = 'dot'
-      el.appendChild(dot)
-      el._noCard = true
+      card.className = 'card gen-tag warn ' + c.warn + ' ' + rankClass(c.title)
+      card.innerHTML =
+        `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+        `<span class="name">${esc(c.name)}</span>` +
+        `<span class="expiry">${formatYyyyMm(c.expiry)}</span>`
     }
-
-    // 根：永遠展開所有第一代
-    if (n.depth === 0) {
-      const rawKids = childMap.get(id) || []
-      if (rawKids.length) {
-        const wrap = document.createElement('div')
-        wrap.className = 'children fg-row'
-        for (const k of rawKids) {
-          const childEl = renderNode(k, false)
-          if (childEl) wrap.appendChild(childEl)
-        }
-        el.appendChild(wrap)
-      }
-    }
-    // 第一代展開：扁平顯示其下所有有感後代（用代數標籤）
-    if (n.depth === 1 && state.expandedId === id) {
-      const activeList = []
-      const seen = new Set()
-      const stack = childMap.get(id) || []
-      while (stack.length) {
-        const cid = stack.shift()
-        if (seen.has(cid) || !byId.has(cid)) continue
-        seen.add(cid)
-        const c = byId.get(cid)
-        if (c.active) activeList.push(cid)
-        for (const k of childMap.get(cid) || []) stack.push(k)
-      }
-      activeList.sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
-      if (activeList.length) {
-        const wrap = document.createElement('div')
-        wrap.className = 'expanded-list'
-        for (const cid of activeList) {
-          const c = byId.get(cid)
-          const card = document.createElement('div')
-          if (c.personal > 0) {
-            card.className = 'card gen-tag'
-            card.innerHTML =
-              `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
-              `<span class="name">${esc(c.name)}</span>` +
-              `<span class="title">[${esc(c.title)}]</span><span class="pf">${fmtNum(c.personal)}</span>`
-          } else {
-            card.className = 'card gen-tag warn ' + c.warn
-            card.innerHTML =
-              `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
-              `<span class="name">${esc(c.name)}</span>` +
-              `<span class="expiry">${formatYyyyMm(c.expiry)}</span>`
-          }
-          card.addEventListener('click', () => showModal(c))
-          wrap.appendChild(card)
-        }
-        el.appendChild(wrap)
-      }
-    }
-    return el
+    card.addEventListener('click', () => showModal(c))
+    return card
   }
 
   const roots = [...byId.keys()].filter(id => byId.get(id).depth === 0)
+  const rootId = roots[0]
   const box = $('pyramid')
   box.innerHTML = ''
   if (!roots.length) {
@@ -287,14 +232,52 @@ function renderPyramid() {
     return
   }
   $('pyramidEmpty').classList.add('hidden')
-  if (roots.length === 1) {
-    box.appendChild(renderNode(roots[0], true))
+
+  const rootEl = document.createElement('div')
+  rootEl.className = 'pylon root'
+  const rootN = byId.get(rootId)
+  const rootCard = document.createElement('div')
+  rootCard.className = 'card root-card'
+  rootCard.innerHTML =
+    `<span class="gen">${dep2(rootN.depth)}</span><span class="name">${esc(rootN.name)}</span>` +
+    `<span class="title">[${esc(rootN.title)}]</span>` +
+    `<span class="pf">${fmtNum(rootN.personal)}</span>`
+  rootCard.addEventListener('click', () => {
+    // 點根卡：返回全部第一代總覽
+    state.expandedId = null
+    renderPyramid()
+  })
+  rootEl.appendChild(rootCard)
+
+  if (state.expandedId === null) {
+    // ===== 總覽模式：一排所有第一代 =====
+    const row = document.createElement('div')
+    row.className = 'children fg-row'
+    const fgChildren = (childMap.get(rootId) || []).filter(id => byId.has(id))
+    for (const k of fgChildren) row.appendChild(firstGenCard(k))
+    rootEl.appendChild(row)
   } else {
-    const wrap = document.createElement('div')
-    wrap.className = 'children' // 多個頭並排
-    for (const r of roots) wrap.appendChild(renderNode(r, true))
-    box.appendChild(wrap)
+    // ===== 展開模式：只有該第一代卡 + 其有感後代列表 =====
+    const sel = byId.get(state.expandedId)
+    if (sel) {
+      const selRow = document.createElement('div')
+      selRow.className = 'children fg-row'
+      selRow.appendChild(firstGenCard(state.expandedId))
+      rootEl.appendChild(selRow)
+
+      const list = collectActiveDesc(state.expandedId)
+      const listWrap = document.createElement('div')
+      listWrap.className = 'expanded-list'
+      if (list.length) {
+        for (const cid of list) listWrap.appendChild(activeCard(cid))
+      } else {
+        listWrap.textContent = '（此第一代本月無有感後代）'
+        listWrap.classList.add('empty')
+      }
+      rootEl.appendChild(listWrap)
+    }
   }
+  box.appendChild(rootEl)
 }
 
 function showModal(n) {

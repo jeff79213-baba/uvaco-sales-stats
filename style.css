@@ -100,6 +100,12 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .card.firstgen.expanded { border-color: #1677ff; background: #f0f6ff; }
 .card.firstgen .pf { font-size: 13px; }
 
+/* 底色框：翡翠=淡綠、珍珠=淡粉 */
+.card.rank-jade { background: #eef7ee !important; border-color: #7bc47e !important; }
+.card.rank-pearl { background: #fdf0f1 !important; border-color: #e8a0ad !important; }
+.card.rank-jade .gen-tag-label { background: #4a9e4c !important; }
+.card.rank-pearl .gen-tag-label { background: #d56a7a !important; }
+
 /* 有感的展開後節點：小窄卡壓縮 */
 .card:not(.root-card):not(.firstgen) { padding: 4px 9px; min-width: 96px; font-size: 12px; }
 .card:not(.root-card):not(.firstgen) .name { font-size: 13px; }

@@ -68,10 +68,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 #goHomeBtn:hover { background: #e0e7ff; }
 #goHomeBtn.hidden { display: none; }
 
-/* 可縮放平移的金字塔容器 */
+/* 可縮放平移的金字塔容器（固定高度，fit 才會以螢幕可見範圍計算） */
 #pyramidViewport {
   position: relative; overflow: hidden; touch-action: none; cursor: grab;
-  background: #fff; border: 1px solid #e3e8f0; border-radius: 10px; min-height: 60vh;
+  background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
+  height: 72vh; min-height: 60vh;
 }
 #pyramidViewport.panning { cursor: grabbing; }
 

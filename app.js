@@ -586,10 +586,14 @@ function fitToView() {
   const nw = pyramidEl.scrollWidth || 1
   const nh = pyramidEl.scrollHeight || 1
   let scale = Math.min(vw / nw, vh / nh, 1)
-  // 完整顯示用下限放寬（配合上下可視），確保大組織也能全部名單進畫面
+  // 完整顯示用下限放寬，確保大組織也能全部名單進畫面
   scale = Math.max(0.05, Math.min(z.max, scale))
   z.scale = scale
-  z.tx = 0; z.ty = 0
+  const tw = nw * scale
+  const th = nh * scale
+  // 縮小後劇中於視埠中央
+  z.tx = Math.max(0, (vw - tw) / 2)
+  z.ty = Math.max(0, (vh - th) / 2)
   applyZoom()
 }
 // 一鍵「全視」：強制把當前視圖縮到完整顯示（總覽/展開皆適用）
@@ -605,7 +609,16 @@ function resetZoom() {
 function zoomBy(factor) {
   const z = state.zoom
   z.userAdjusted = true
-  z.scale = Math.min(z.max, Math.max(z.min, z.scale * factor))
+  const vw = viewport.clientWidth, vh = viewport.clientHeight
+  const cx = vw / 2, cy = vh / 2
+  // 縮放前畫面中心點對應的內容座標（原點 0,0）
+  const px = (cx - z.tx) / z.scale
+  const py = (cy - z.ty) / z.scale
+  const ns = Math.min(z.max, Math.max(z.min, z.scale * factor))
+  // 讓該內容點仍落在畫面中心，避免縮放時跑向角落
+  z.scale = ns
+  z.tx = cx - px * ns
+  z.ty = cy - py * ns
   applyZoom()
 }
 

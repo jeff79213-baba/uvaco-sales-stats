@@ -76,10 +76,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 }
 #pyramidViewport.panning { cursor: grabbing; }
 
-/* #pyramid 為可縮放畫布：transform 由 JS 控制（scale + translate） */
+/* #pyramid 為可縮放畫布：transform 由 JS 控制（scale + translate），錨點左上供 fit 劇中 */
 #pyramid {
   display: flex; flex-direction: column; align-items: center; gap: 16px;
-  margin: 0; transform-origin: center center; width: max-content; min-width: 100%;
+  margin: 0; position: absolute; left: 0; top: 0;
+  transform-origin: 0 0; width: max-content; min-width: 100%;
 }
 
 .zoom-control {

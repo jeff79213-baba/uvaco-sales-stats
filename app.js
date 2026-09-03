@@ -569,15 +569,27 @@ function fitPyramid() {
   // 使用者已手動縮放/平移過 → 不再覆蓋（避免「回彈」）
   if (z.userAdjusted) { applyZoom(); return }
   if (state.expandedId === null) { resetZoom(); return }  // 總覽維持 100%
-  const vw = viewport.clientWidth || 1
-  // 先歸零量測自然寬度
+  fitToView()
+}
+// 將「當前視圖」（總覽=全部第一代 / 展開=整棵子樹）完整縮放進畫面
+function fitToView() {
+  const z = state.zoom
+  // 歸零量測自然尺寸
   pyramidEl.style.transform = 'none'
-  const natural = pyramidEl.scrollWidth || 1
-  let scale = Math.min(vw / natural, 1)
+  const vw = viewport.clientWidth || window.innerWidth || 1
+  const vh = viewport.clientHeight || window.innerHeight || 1
+  const nw = pyramidEl.scrollWidth || 1
+  const nh = pyramidEl.scrollHeight || 1
+  let scale = Math.min(vw / nw, vh / nh, 1)
   scale = Math.max(z.min, Math.min(z.max, scale))
   z.scale = scale
   z.tx = 0; z.ty = 0
   applyZoom()
+}
+// 一鍵「全視」：強制把當前視圖縮到完整顯示（總覽/展開皆適用）
+function fitAll() {
+  state.zoom.userAdjusted = false
+  fitToView()
 }
 function resetZoom() {
   const z = state.zoom
@@ -599,6 +611,7 @@ let panTx = 0, panTy = 0
 $('zoomIn').addEventListener('click', () => zoomBy(1.25))
 $('zoomOut').addEventListener('click', () => zoomBy(0.8))
 $('zoomReset').addEventListener('click', resetZoom)
+$('fitAllBtn').addEventListener('click', fitAll)
 
 // 回到林莉雯：重置為總覽（全部第一代）+ 重設縮放
 function goHome() {

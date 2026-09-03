@@ -8,6 +8,12 @@ body {
 
 .hidden { display: none !important; }
 
+/* 手機 LINE/WebView：禁用下拉回彈、整頁跟隨 */
+html, body {
+  overscroll-behavior-y: none;
+  overscroll-behavior-x: none;
+}
+
 .center-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(160deg, #2b6cb0 0%, #1a365d 60%, #12294a 100%); }
 
 .login-card {

@@ -706,3 +706,18 @@ document.querySelector('.pw-toggle').addEventListener('click', e => {
     ? '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>'
     : '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
 })
+
+/* ============ 手機 LINE/WebView 禁用下拉回彈 ============ */
+// 阻止 body 在非捲動狀態下滑時整頁跟隨（下拉刷新 / overscroll）
+document.addEventListener('touchmove', e => {
+  // 行程的根目標
+  const t = e.target
+  // 金字塔視埠內已有 touch-action:none 處理，不重複攔截
+  if (t.closest && t.closest('#pyramidViewport')) return
+  // 可捲動元素（textarea 等）保留原生捲動
+  const el = t.closest ? (t.closest('textarea, [data-allow-scroll], .admin-section textarea') || t) : t
+  if (el && (el.scrollHeight > el.clientHeight + 1)) return
+  // 頁面已經捲到非頂部，保留捲動（僅擋頂部下拉）
+  if (window.scrollY > 0) return
+  e.preventDefault()
+}, { passive: false })

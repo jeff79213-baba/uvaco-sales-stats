@@ -151,11 +151,16 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 #pyramid .chain-children > .chain-node::before {
   margin-bottom: 4px;
 }
-/* 多個子分支：讓子節點左右並排而非疊成單一長串 */
+/* 多個子分支：同層節點左右並排，過多時自動換行到一個區域內（避免無限加寬） */
 #pyramid .expanded-list .chain-children {
   flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: flex-start;
-  gap: 26px;
+  gap: 22px 26px;
+}
+#pyramid .expanded-list .chain-children {
+  max-width: 1000px;
 }
 #pyramid .expanded-list .chain-children > .chain-node {
   flex-direction: column;

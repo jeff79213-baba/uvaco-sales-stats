@@ -199,7 +199,7 @@ function renderPyramid() {
       ? `<span class="pf">${fmtNum(c.personal)}</span>`
       : (c.expiry ? `<span class="expiry">${formatYyyyMm(c.expiry)}</span>` : '')
     card.innerHTML =
-      `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+      `<span class="gen-tag-label">${dep2(c.depth)}</span>` +
       `<span class="name">${esc(c.name)}</span>` +
       `<span class="title">[${esc(c.title)}]</span>` + orderHtml
     card.addEventListener('click', () => showModal(c))

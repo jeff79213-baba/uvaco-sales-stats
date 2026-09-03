@@ -280,6 +280,10 @@ function renderPyramid() {
   }
   box.appendChild(rootEl)
   $('goHomeBtn').classList.toggle('hidden', state.expandedId === null)
+  // 主畫面（總覽）不顯示縮放控制，僅展開第一代時顯示
+  const expandMode = state.expandedId !== null
+  document.querySelector('.zoom-control').classList.toggle('hidden', !expandMode)
+  $('zoomLevel').classList.toggle('hidden', !expandMode)
   requestAnimationFrame(fitPyramid)
 }
 
@@ -612,7 +616,6 @@ let panTx = 0, panTy = 0
 
 $('zoomIn').addEventListener('click', () => zoomBy(1.25))
 $('zoomOut').addEventListener('click', () => zoomBy(0.8))
-$('zoomReset').addEventListener('click', resetZoom)
 $('fitAllBtn').addEventListener('click', fitAll)
 
 // 回到林莉雯：重置為總覽（全部第一代）+ 重設縮放

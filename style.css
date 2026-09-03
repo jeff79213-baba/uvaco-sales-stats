@@ -60,6 +60,14 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .s-red { background: #ef4444; }
 .s-dot { background: transparent; border-radius: 50%; }
 
+/* 回到林莉雯按鈕 */
+#goHomeBtn {
+  margin-left: auto; padding: 6px 14px; border: 1px solid #c7d2fe; background: #eef2ff;
+  color: #3730a3; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+#goHomeBtn:hover { background: #e0e7ff; }
+#goHomeBtn.hidden { display: none; }
+
 /* 可縮放平移的金字塔容器 */
 #pyramidViewport {
   position: relative; overflow: hidden; touch-action: none; cursor: grab;

@@ -54,7 +54,7 @@ const state = {
   monthData: null,      // 當月快照 { members: {...} }
   preview: null,
   expandedId: null,     // 目前展開的第一代成員 id
-  zoom: { scale: 1, tx: 0, ty: 0, min: 0.2, max: 8 }
+  zoom: { scale: 1, tx: 0, ty: 0, min: 0.2, max: 8, userAdjusted: false }
 }
 
 /* ============ 資料載入 ============ */
@@ -277,6 +277,7 @@ function renderPyramid() {
     }
   }
   box.appendChild(rootEl)
+  $('goHomeBtn').classList.toggle('hidden', state.expandedId === null)
   requestAnimationFrame(fitPyramid)
 }
 
@@ -565,6 +566,8 @@ function applyZoom() {
 }
 function fitPyramid() {
   const z = state.zoom
+  // 使用者已手動縮放/平移過 → 不再覆蓋（避免「回彈」）
+  if (z.userAdjusted) { applyZoom(); return }
   if (state.expandedId === null) { resetZoom(); return }  // 總覽維持 100%
   const vw = viewport.clientWidth || 1
   // 先歸零量測自然寬度
@@ -578,11 +581,12 @@ function fitPyramid() {
 }
 function resetZoom() {
   const z = state.zoom
-  z.scale = 1; z.tx = 0; z.ty = 0
+  z.scale = 1; z.tx = 0; z.ty = 0; z.userAdjusted = false
   applyZoom()
 }
 function zoomBy(factor) {
   const z = state.zoom
+  z.userAdjusted = true
   z.scale = Math.min(z.max, Math.max(z.min, z.scale * factor))
   applyZoom()
 }
@@ -595,6 +599,14 @@ let panTx = 0, panTy = 0
 $('zoomIn').addEventListener('click', () => zoomBy(1.25))
 $('zoomOut').addEventListener('click', () => zoomBy(0.8))
 $('zoomReset').addEventListener('click', resetZoom)
+
+// 回到林莉雯：重置為總覽（全部第一代）+ 重設縮放
+function goHome() {
+  state.expandedId = null
+  state.zoom.userAdjusted = false
+  renderPyramid()
+}
+$('goHomeBtn').addEventListener('click', goHome)
 
 // 滑鼠滾輪縮放
 viewport.addEventListener('wheel', e => {
@@ -626,6 +638,7 @@ viewport.addEventListener('touchmove', e => {
     if (pinchDist > 0) zoomBy(d / pinchDist)
     pinchDist = d
   } else if (e.touches.length === 1 && panning) {
+    z.userAdjusted = true
     z.tx = panTx + (e.touches[0].clientX - panStartX)
     z.ty = panTy + (e.touches[0].clientY - panStartY)
     applyZoom()
@@ -646,6 +659,7 @@ viewport.addEventListener('mousedown', e => {
 })
 window.addEventListener('mousemove', e => {
   if (!panning) return
+  state.zoom.userAdjusted = true
   state.zoom.tx = panTx + (e.clientX - panStartX)
   state.zoom.ty = panTy + (e.clientY - panStartY)
   applyZoom()

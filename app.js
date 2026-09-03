@@ -53,7 +53,8 @@ const state = {
   selectedMonth: null,
   monthData: null,      // 當月快照 { members: {...} }
   preview: null,
-  expandedId: null      // 目前展開的第一代成員 id
+  expandedId: null,     // 目前展開的第一代成員 id
+  zoom: { scale: 1, tx: 0, ty: 0, min: 0.2, max: 8 }
 }
 
 /* ============ 資料載入 ============ */
@@ -276,6 +277,7 @@ function renderPyramid() {
     }
   }
   box.appendChild(rootEl)
+  requestAnimationFrame(fitPyramid)
 }
 
 function showModal(n) {
@@ -551,6 +553,104 @@ function renderWarnPreview() {
 /* ============ 彈窗 ============ */
 $('modalClose').addEventListener('click', () => $('modal').classList.add('hidden'))
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').classList.add('hidden') })
+
+/* ============ 金字塔縮放／平移 ============ */
+const pyramidEl = $('pyramid')
+const viewport = $('pyramidViewport')
+
+function applyZoom() {
+  const z = state.zoom
+  pyramidEl.style.transform = `translate(${z.tx}px, ${z.ty}px) scale(${z.scale})`
+  $('zoomLevel').textContent = Math.round(z.scale * 100) + '%'
+}
+function fitPyramid() {
+  const z = state.zoom
+  if (state.expandedId === null) { resetZoom(); return }  // 總覽維持 100%
+  const vw = viewport.clientWidth || 1
+  // 先歸零量測自然寬度
+  pyramidEl.style.transform = 'none'
+  const natural = pyramidEl.scrollWidth || 1
+  let scale = Math.min(vw / natural, 1)
+  scale = Math.max(z.min, Math.min(z.max, scale))
+  z.scale = scale
+  z.tx = 0; z.ty = 0
+  applyZoom()
+}
+function resetZoom() {
+  const z = state.zoom
+  z.scale = 1; z.tx = 0; z.ty = 0
+  applyZoom()
+}
+function zoomBy(factor) {
+  const z = state.zoom
+  z.scale = Math.min(z.max, Math.max(z.min, z.scale * factor))
+  applyZoom()
+}
+
+let pinchDist = 0
+let panning = false
+let panStartX = 0, panStartY = 0
+let panTx = 0, panTy = 0
+
+$('zoomIn').addEventListener('click', () => zoomBy(1.25))
+$('zoomOut').addEventListener('click', () => zoomBy(0.8))
+$('zoomReset').addEventListener('click', resetZoom)
+
+// 滑鼠滾輪縮放
+viewport.addEventListener('wheel', e => {
+  e.preventDefault()
+  zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15)
+}, { passive: false })
+
+// 觸控：雙指縮放 + 單指平移
+viewport.addEventListener('touchstart', e => {
+  const z = state.zoom
+  if (e.touches.length === 2) {
+    pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                           e.touches[0].clientY - e.touches[1].clientY)
+  } else if (e.touches.length === 1) {
+    panning = true
+    panStartX = e.touches[0].clientX
+    panStartY = e.touches[0].clientY
+    panTx = z.tx
+    panTy = z.ty
+    viewport.classList.add('panning')
+  }
+}, { passive: true })
+
+viewport.addEventListener('touchmove', e => {
+  const z = state.zoom
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
+                         e.touches[0].clientY - e.touches[1].clientY)
+    if (pinchDist > 0) zoomBy(d / pinchDist)
+    pinchDist = d
+  } else if (e.touches.length === 1 && panning) {
+    z.tx = panTx + (e.touches[0].clientX - panStartX)
+    z.ty = panTy + (e.touches[0].clientY - panStartY)
+    applyZoom()
+  }
+}, { passive: true })
+
+viewport.addEventListener('touchend', e => {
+  if (e.touches.length < 2) pinchDist = 0
+  if (e.touches.length === 0) { panning = false; viewport.classList.remove('panning') }
+})
+
+// 滑鼠拖曳平移
+viewport.addEventListener('mousedown', e => {
+  panning = true
+  viewport.classList.add('panning')
+  panStartX = e.clientX; panStartY = e.clientY
+  panTx = state.zoom.tx; panTy = state.zoom.ty
+})
+window.addEventListener('mousemove', e => {
+  if (!panning) return
+  state.zoom.tx = panTx + (e.clientX - panStartX)
+  state.zoom.ty = panTy + (e.clientY - panStartY)
+  applyZoom()
+})
+window.addEventListener('mouseup', () => { panning = false; viewport.classList.remove('panning') })
 
 /* ============ 密碼顯示開關 ============ */
 document.querySelector('.pw-toggle').addEventListener('click', e => {

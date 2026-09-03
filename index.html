@@ -53,7 +53,15 @@
         <span><i class="sw s-red"></i>最後 1 個月到期</span>
         <span><i class="sw s-dot"></i>銜接（無業績）</span>
       </div>
-      <div id="pyramid"></div>
+      <div id="pyramidViewport">
+        <div id="pyramid"></div>
+        <div class="zoom-level" id="zoomLevel">100%</div>
+        <div class="zoom-control">
+          <button id="zoomOut" title="縮小">－</button>
+          <button id="zoomReset" title="重設">⤢</button>
+          <button id="zoomIn" title="放大">＋</button>
+        </div>
+      </div>
       <div id="pyramidEmpty" class="hidden">此月份尚無資料，請到「後台設定」貼上組織資料。</div>
     </div>
 

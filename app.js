@@ -184,6 +184,8 @@ function renderPyramid() {
     card.addEventListener('click', () => {
       // 點第一代：進入/返回展開檢視（再次點同一張則返回總覽）
       state.expandedId = (state.expandedId === id) ? null : id
+      // 切換時強制重新 fit：展開→子樹全部名單全見；回總覽→第一代整排全見
+      state.zoom.userAdjusted = false
       renderPyramid()
     })
     return card
@@ -574,14 +576,14 @@ function fitPyramid() {
 // 將「當前視圖」（總覽=全部第一代 / 展開=整棵子樹）完整縮放進畫面
 function fitToView() {
   const z = state.zoom
-  // 歸零量測自然尺寸
   pyramidEl.style.transform = 'none'
   const vw = viewport.clientWidth || window.innerWidth || 1
   const vh = viewport.clientHeight || window.innerHeight || 1
   const nw = pyramidEl.scrollWidth || 1
   const nh = pyramidEl.scrollHeight || 1
   let scale = Math.min(vw / nw, vh / nh, 1)
-  scale = Math.max(z.min, Math.min(z.max, scale))
+  // 完整顯示用下限放寬（配合上下可視），確保大組織也能全部名單進畫面
+  scale = Math.max(0.05, Math.min(z.max, scale))
   z.scale = scale
   z.tx = 0; z.ty = 0
   applyZoom()

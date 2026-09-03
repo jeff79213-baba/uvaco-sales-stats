@@ -156,7 +156,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 /* 被動中間節點：小圓點 */
 #pyramid .dot { width: 8px; height: 8px; }
 
-/* 展開的第一代：有感後代垂直分線 */
+/* 第一代整排：限制寬度讓多張自動往下換行到第二排 */
+#pyramid .fg-row {
+  max-width: min(92vw, 620px);
+}
 #pyramid .expanded-list {
   display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: center;
   gap: 30px; margin-top: 12px; padding-top: 4px;

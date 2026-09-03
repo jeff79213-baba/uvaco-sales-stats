@@ -162,7 +162,7 @@ function renderPyramid() {
     list.sort((a, b) => (byId.get(a).order ?? 0) - (byId.get(b).order ?? 0))
   }
 
-  // ===== 輔助：依原職給底色 class =====
+  // ===== 輔助：依原職給字色 class（背框一致，只有名字文字顏色不同）=====
   function rankClass(title) {
     if (!title) return ''
     if (title.includes('翡翠')) return 'rank-jade'
@@ -173,8 +173,9 @@ function renderPyramid() {
   function firstGenCard(id) {
     const n = byId.get(id)
     const isExpanded = state.expandedId === id
+    const noOrder = n.personal === 0
     const card = document.createElement('div')
-    card.className = 'card firstgen' + (isExpanded ? ' expanded' : '') + ' ' + rankClass(n.title)
+    card.className = 'card firstgen' + (isExpanded ? ' expanded' : '') + ' ' + rankClass(n.title) + (noOrder ? ' no-order' : '')
     const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
     card.innerHTML =
       `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
@@ -187,83 +188,37 @@ function renderPyramid() {
     return card
   }
 
-  // 收集某第一代下所有有感後代；childMap 為 id->子id 清單
-  function collectActiveDesc(id) {
-    const list = []
-    const seen = new Set()
-    const stack = childMap.get(id) || []
-    while (stack.length) {
-      const cid = stack.shift()
-      if (seen.has(cid) || !byId.has(cid)) continue
-      seen.add(cid)
-      const c = byId.get(cid)
-      if (c.active) list.push(cid)
-      for (const k of childMap.get(cid) || []) stack.push(k)
-    }
-    return list
+  // 渲染「所有人」卡片：有訂貨正常字色、沒訂貨灰名、翡翠/珍珠字色
+  function memberCard(id) {
+    const c = byId.get(id)
+    const card = document.createElement('div')
+    // 背框一致，顏色只在名字：翡翠綠/珍珠粉/有訂貨正常/沒訂貨灰
+    const noOrder = c.personal === 0
+    card.className = 'card gen-tag ' + rankClass(c.title) + (noOrder ? ' no-order' : '')
+    const orderHtml = c.personal > 0
+      ? `<span class="pf">${fmtNum(c.personal)}</span>`
+      : (c.expiry ? `<span class="expiry">${formatYyyyMm(c.expiry)}</span>` : '')
+    card.innerHTML =
+      `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
+      `<span class="name">${esc(c.name)}</span>` +
+      `<span class="title">[${esc(c.title)}]</span>` + orderHtml
+    card.addEventListener('click', () => showModal(c))
+    return card
   }
 
-  // 建立「有感後代」樹：每個有感節點連到最近的「有感祖先」（在同一個有感後代集合內）
-  function buildActiveForest(rootId, activeIds) {
-    const actSet = new Set(activeIds)
-    const forest = []      // 頂點：沒有有感祖先的有感節點
-    const childrenOf = new Map()  // key: 有感祖先id -> [有感後代id]
-
-    // 依深度排序，給每個有感節點找其最近有感祖先
-    const ordered = [...activeIds].sort((a, b) => (byId.get(a).depth - byId.get(b).depth) || ((byId.get(a).order ?? 0) - (byId.get(b).order ?? 0)))
-
-    // 對每個有感節點，沿 parentId 鏈往上找第一個「也在 activeIds 且有感者」
-    for (const cid of ordered) {
-      let anc = byId.get(cid).parentId
-      let found = null
-      while (anc) {
-        const ancN = byId.get(anc)
-        if (ancN && actSet.has(anc)) { found = anc; break }
-        anc = ancN ? ancN.parentId : null
-      }
-      if (found) {
-        if (!childrenOf.has(found)) childrenOf.set(found, [])
-        childrenOf.get(found).push(cid)
-      } else {
-        forest.push(cid)
-      }
-    }
-    return { forest, childrenOf }
-  }
-
-  // 垂直渲染一棵有感子樹（遞迴）
-  function renderActiveNode(cid, forestChildren) {
+  // 遞迴垂直渲染整棵子樹（所有人），畫出上下線
+  function renderSubtree(id, rc) {
     const wrap = document.createElement('div')
     wrap.className = 'chain-node'
-    wrap.appendChild(activeCard(cid))
-    const kids = forestChildren.get(cid) || []
+    wrap.appendChild(memberCard(id))
+    const kids = childMap.get(id) || []
     if (kids.length) {
       const sub = document.createElement('div')
       sub.className = 'chain-children'
-      for (const k of kids) sub.appendChild(renderActiveNode(k, forestChildren))
+      for (const k of kids) sub.appendChild(renderSubtree(k, rc))
       wrap.appendChild(sub)
     }
     return wrap
-  }
-
-  function activeCard(id) {
-    const c = byId.get(id)
-    const card = document.createElement('div')
-    if (c.personal > 0) {
-      card.className = 'card gen-tag ' + rankClass(c.title)
-      card.innerHTML =
-        `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
-        `<span class="name">${esc(c.name)}</span>` +
-        `<span class="title">[${esc(c.title)}]</span><span class="pf">${fmtNum(c.personal)}</span>`
-    } else {
-      card.className = 'card gen-tag warn ' + c.warn + ' ' + rankClass(c.title)
-      card.innerHTML =
-        `<span class="gen-tag-label">第${dep2(c.depth)}代</span>` +
-        `<span class="name">${esc(c.name)}</span>` +
-        `<span class="expiry">${formatYyyyMm(c.expiry)}</span>`
-    }
-    card.addEventListener('click', () => showModal(c))
-    return card
   }
 
   const roots = [...byId.keys()].filter(id => byId.get(id).depth === 0)
@@ -280,7 +235,7 @@ function renderPyramid() {
   rootEl.className = 'pylon root'
   const rootN = byId.get(rootId)
   const rootCard = document.createElement('div')
-  rootCard.className = 'card root-card'
+  rootCard.className = 'card root-card' + (rootN.personal === 0 ? ' no-order' : '')
   rootCard.innerHTML =
     `<span class="gen">${dep2(rootN.depth)}</span><span class="name">${esc(rootN.name)}</span>` +
     `<span class="title">[${esc(rootN.title)}]</span>` +
@@ -300,7 +255,7 @@ function renderPyramid() {
     for (const k of fgChildren) row.appendChild(firstGenCard(k))
     rootEl.appendChild(row)
   } else {
-    // ===== 展開模式：只有該第一代卡 + 其有感後代列表 =====
+    // ===== 展開模式：只有該第一代卡 + 其下方整棵組織樹（所有人）=====
     const sel = byId.get(state.expandedId)
     if (sel) {
       const selRow = document.createElement('div')
@@ -308,19 +263,13 @@ function renderPyramid() {
       selRow.appendChild(firstGenCard(state.expandedId))
       rootEl.appendChild(selRow)
 
-      const list = collectActiveDesc(state.expandedId)
+      const kids = childMap.get(state.expandedId) || []
       const listWrap = document.createElement('div')
       listWrap.className = 'expanded-list'
-      if (list.length) {
-        const { forest, childrenOf } = buildActiveForest(state.expandedId, list)
-        if (forest.length) {
-          for (const cid of forest) listWrap.appendChild(renderActiveNode(cid, childrenOf))
-        } else {
-          // 理論上不應發生：forest 至少含最頂層有感者
-          for (const cid of list) listWrap.appendChild(activeCard(cid))
-        }
+      if (kids.length) {
+        for (const k of kids) listWrap.appendChild(renderSubtree(k))
       } else {
-        listWrap.textContent = '（此第一代本月無有感後代）'
+        listWrap.textContent = '（此第一代無下線）'
         listWrap.classList.add('empty')
       }
       rootEl.appendChild(listWrap)

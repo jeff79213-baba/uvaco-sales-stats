@@ -70,36 +70,52 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .mode-bar button:hover { background: #f0f4fb; }
 .mode-bar button.active { background: #3730a3; color: #fff; border-color: #3730a3; }
 
-/* 可縮放平移的金字塔容器（固定高度，fit 才會以螢幕可見範圍計算） */
+/* 金字塔容器：一般流動，上下捲動 */
 #pyramidViewport {
-  position: relative; overflow: hidden; touch-action: none; cursor: grab;
-  background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
-  height: 72vh; min-height: 60vh;
+  position: relative; background: #fff; border: 1px solid #e3e8f0; border-radius: 10px;
+  padding: 16px 12px;
 }
 #pyramidViewport.panning { cursor: grabbing; }
 
-/* #pyramid 為可縮放畫布：transform 由 JS 控制（scale + translate），錨點左上供 fit 劇中 */
+/* #pyramid：一般文件流（不套用 transform / 縮放），自動上下捲動 */
 #pyramid {
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
-  margin: 0; position: absolute; left: 0; top: 0;
-  transform-origin: 0 0; width: max-content; min-width: 100%;
+  display: flex; flex-direction: column; min-height: 40vh;
 }
 
-.zoom-control {
-  position: fixed; right: 14px; bottom: 14px; display: flex; flex-direction: column;
-  gap: 6px; z-index: 60;
+/* 首頁：林莉雯 + 第一代 */
+.home-view { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 8px 0 16px; }
+.list-root-card {
+  background: #1a365d; color: #fff; border-radius: 12px; padding: 12px 26px;
+  text-align: center; cursor: pointer; min-width: 180px;
 }
-.zoom-control button {
-  width: 44px; height: 44px; border-radius: 10px; border: 1px solid #d0d7e2;
-  background: #fff; font-size: 20px; line-height: 1; cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,.18); color: #333; touch-action: manipulation;
+.list-root-card .gen { color: #a9c3dd; font-size: 12px; margin-right: 4px; }
+.list-root-card .name { font-weight: 800; font-size: 18px; margin: 0 6px; }
+.list-root-card .title { font-size: 13px; color: #cdd9ea; margin: 0 4px; }
+.list-root-card .pf { font-weight: 800; font-size: 17px; color: #7fd0ff; }
+
+.gen-grid {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 14px;
+  max-width: 640px;
 }
-.zoom-control button:hover { background: #f0f4fb; }
-/* 縮放百分比指示（固定在視窗右上） */
-.zoom-level {
-  position: fixed; right: 14px; top: 70px; z-index: 60; font-size: 12px; color: #667;
-  background: rgba(255,255,255,.9); padding: 3px 10px; border-radius: 8px; border: 1px solid #e3e8f0;
+
+/* 展開名單 / 垂直線 垂直列表 */
+.view-list { display: flex; flex-direction: column; gap: 10px; max-width: 620px; margin: 0 auto; padding: 6px 0 16px; }
+.view-head { font-size: 15px; font-weight: 700; color: #1a365d; padding: 4px 2px 8px; border-bottom: 1px solid #e4e7ee; margin-bottom: 4px; }
+.list-row {
+  display: flex; align-items: center; text-align: left;
+  padding: 9px 14px; min-width: 0; font-size: 14px;
 }
+.list-row .gen { font-size: 12px; }
+.line-node { display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.line-node:not(:first-child)::before {
+  content: ''; width: 2px; height: 18px; margin: -8px auto 6px;
+  background: repeating-linear-gradient(to bottom, #b8c2d4 0 4px, transparent 4px 8px);
+}
+.empty { text-align: center; color: #888; padding: 20px 0; }
+
+/* 縮放控制已移除：改為一般上下捲動 */
+
+#pyramidEmpty { text-align: center; color: #888; padding: 40px 0; }
 
 .pylon { display: flex; flex-direction: column; align-items: center; position: relative; }
 .pylon:not(.root) > .card, .pylon:not(.root) > .dot { margin-top: 20px; }
@@ -228,8 +244,6 @@ main { max-width: 1200px; margin: 0 auto; padding: 18px; }
 .dot {
   width: 12px; height: 12px; border-radius: 50%; background: #d3d9e4; border: 1.5px solid #aab4c6;
 }
-
-#pyramidEmpty { text-align: center; color: #888; padding: 40px 0; }
 
 /* 後台 */
 .admin-section {

@@ -53,11 +53,10 @@ const state = {
   selectedMonth: null,
   monthData: null,      // 當月快照 { members: {...} }
   preview: null,
-  expandedId: null,     // 目前展開的第一代成員 id（保留相容）
-  mode: 'none',         // 'none' | 'next'（下一代）| 'tree'（樹）
-  navRoot: null,        // 目前焦點根個人 id（預設林莉雯）
-  navStack: [],         // 下一代模式逐層下鑽的歷史（供「上一層」）
-  zoom: { scale: 1, tx: 0, ty: 0, min: 0.15, max: 8, userAdjusted: false }
+  view: 'home',         // 'home'（林莉雯+第一代）| 'gen'（第一代展開名單）| 'line'（垂直線）
+  activeGen: null,      // 目前展開的第一代 id
+  lineTarget: null,     // 垂直線目標個人 id
+  lineOn: false,        // [線] 是否開啟（反白）
 }
 
 /* ============ 資料載入 ============ */
@@ -166,7 +165,7 @@ function renderPyramid() {
     list.sort((a, b) => (byId.get(a).order ?? 0) - (byId.get(b).order ?? 0))
   }
 
-  // ===== 輔助：依原職給字色 class（背框一致，只有名字文字顏色不同）=====
+  // ===== 輔助：依原職給字色 class =====
   function rankClass(title) {
     if (!title) return ''
     if (title.includes('翡翠')) return 'rank-jade'
@@ -174,125 +173,161 @@ function renderPyramid() {
     return ''
   }
 
-// 點擊個人卡：依目前模式決定行為
-  function onPersonClick(key) {
-    if (state.mode === 'tree') {
-      // 樹模式：以該人為焦點根，顯示其下整棵樹（非整個大組織）
-      state.navRoot = key
-      renderPyramid()
-    } else {
-      // 無 / 下一代：顯示該人資料
-      showModal(byId.get(key))
-    }
-  }
-
-  function firstGenCard(id) {
-    const n = byId.get(id)
-    const noOrder = n.personal === 0
-    const card = document.createElement('div')
-    card.className = 'card firstgen ' + rankClass(n.title) + (noOrder ? ' no-order' : '')
-    const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
-    card.innerHTML =
-      `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
-      `<span class="title">[${esc(n.title)}]</span>` + salesHtml
-    card.addEventListener('click', () => onPersonClick(id))
-    return card
-  }
-
-  // 樹節點卡（子樹內每個人）
-  function memberCard(id) {
-    const c = byId.get(id)
-    const noOrder = c.personal === 0
-    const card = document.createElement('div')
-    card.className = 'card gen-tag ' + rankClass(c.title) + (noOrder ? ' no-order' : '')
-    const orderHtml = c.personal > 0
-      ? `<span class="pf">${fmtNum(c.personal)}</span>`
-      : (c.expiry ? `<span class="expiry">${formatYyyyMm(c.expiry)}</span>` : '')
-    card.innerHTML =
-      `<span class="gen-tag-label">${dep2(c.depth)}</span>` +
-      `<span class="name">${esc(c.name)}</span>` +
-      `<span class="title">[${esc(c.title)}]</span>` + orderHtml
-    card.addEventListener('click', () => onPersonClick(id))
-    return card
-  }
-
-  // 遞迴垂直渲染整棵子樹
-  function renderSubtree(id) {
-    const wrap = document.createElement('div')
-    wrap.className = 'chain-node'
-    wrap.appendChild(memberCard(id))
-    const kids = childMap.get(id) || []
-    if (kids.length) {
-      const sub = document.createElement('div')
-      sub.className = 'chain-children'
-      for (const k of kids) sub.appendChild(renderSubtree(k))
-      wrap.appendChild(sub)
-    }
-    return wrap
-  }
-
   const roots = [...byId.keys()].filter(id => byId.get(id).depth === 0)
   const globalRootId = roots[0]
   const box = $('pyramid')
   box.innerHTML = ''
+  $('pyramidEmpty').classList.add('hidden')
   if (!roots.length) {
     $('pyramidEmpty').classList.remove('hidden')
     return
   }
-  $('pyramidEmpty').classList.add('hidden')
 
-  // 樹模式：焦點根（預設全域根=整棵組織）
-  const rootKey = state.navRoot || globalRootId
-  const rootN = byId.get(rootKey)
+  // [線] 按鈕反白狀態
+  $('lineBtn').classList.toggle('active', state.lineOn)
 
-  const rootEl = document.createElement('div')
-  rootEl.className = 'pylon root'
-  const rootCard = document.createElement('div')
-  rootCard.className = 'card root-card' + (rootN.personal === 0 ? ' no-order' : '')
-  rootCard.innerHTML =
-    `<span class="gen">${dep2(rootN.depth)}</span><span class="name">${esc(rootN.name)}</span>` +
-    `<span class="title">[${esc(rootN.title)}]</span>` +
-    `<span class="pf">${fmtNum(rootN.personal)}</span>`
-  // 點根卡：顯示根資料；若已在子樹且點到根卡則回到整棵組織
-  rootCard.addEventListener('click', () => {
-    if (state.mode === 'tree' && rootKey !== globalRootId) {
-      state.navRoot = null
-      renderPyramid()
-    } else {
-      showModal(rootN)
-    }
-  })
-  rootEl.appendChild(rootCard)
-
-  if (state.mode === 'tree' && state.navRoot) {
-    // ===== 樹模式（已選擇某人）：以該人為頂，顯示其下整棵樹 =====
-    const listWrap = document.createElement('div')
-    listWrap.className = 'expanded-list'
-    const kids = childMap.get(rootKey) || []
-    if (kids.length) {
-      for (const k of kids) listWrap.appendChild(renderSubtree(k))
-    } else {
-      listWrap.textContent = '（此人無下線）'
-      listWrap.classList.add('empty')
-    }
-    rootEl.appendChild(listWrap)
-  } else {
-    // ===== 總覽 / 樹模式頂層：根卡 + 一排第一代，點人名看資料或切入子樹 =====
-    const row = document.createElement('div')
-    row.className = 'children fg-row'
-    const kids = (childMap.get(rootKey) || []).filter(id => byId.has(id))
-    for (const k of kids) row.appendChild(firstGenCard(k))
-    rootEl.appendChild(row)
+  if (state.view === 'line') {
+    renderLineView(box, byId, childMap, globalRootId)
+    return
   }
-  box.appendChild(rootEl)
+  if (state.view === 'gen' && state.activeGen && byId.has(state.activeGen)) {
+    renderGenView(box, byId, childMap)
+    return
+  }
 
-  // 模式按鈕反白高亮
-  $('modeNextBtn')?.classList.toggle('active', state.mode === 'next')
-  $('modeTreeBtn')?.classList.toggle('active', state.mode === 'tree')
-  // 縮放控制只留「全」，固定視埠
-  document.querySelector('.zoom-control').classList.toggle('hidden', false)
-  $('zoomLevel').classList.toggle('hidden', false)
-  requestAnimationFrame(fitPyramid)
+  renderHomeView(box, byId, globalRootId)
+
+  // ===== 首頁：林莉雯 + 第一代 =====
+  function renderHomeView(boxEl, byIdMap, rootId) {
+    const rootN = byIdMap.get(rootId)
+    const wrap = document.createElement('div')
+    wrap.className = 'home-view'
+    const rootCard = document.createElement('div')
+    rootCard.className = 'list-root-card'
+    rootCard.innerHTML =
+      `<span class="gen">${dep2(rootN.depth)}</span><span class="name">${esc(rootN.name)}</span>` +
+      `<span class="title">[${esc(rootN.title)}]</span>` +
+      `<span class="pf">${fmtNum(rootN.personal)}</span>`
+    rootCard.addEventListener('click', () => showModal(rootN))
+    wrap.appendChild(rootCard)
+
+    const grid = document.createElement('div')
+    grid.className = 'gen-grid'
+    const kids = (childMap.get(rootId) || []).filter(id => byIdMap.has(id))
+    for (const k of kids) {
+      const n = byIdMap.get(k)
+      const card = document.createElement('div')
+      card.className = 'card gen-cell ' + rankClass(n.title)
+      const salesHtml = n.personal > 0 ? `<span class="pf">${fmtNum(n.personal)}</span>` : ''
+      card.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span>` + salesHtml
+      card.addEventListener('click', () => {
+        state.view = 'gen'
+        state.activeGen = k
+        state.lineTarget = null
+        renderPyramid()
+      })
+      grid.appendChild(card)
+    }
+    wrap.appendChild(grid)
+    boxEl.appendChild(wrap)
+  }
+
+  // ===== 第一代展開：旗下本月有訂購名單（垂直列表）=====
+  function renderGenView(boxEl, byIdMap, childMapMap) {
+    const gen = byIdMap.get(state.activeGen)
+    // 收集該第一代旗下所有下線（含自己）
+    const all = []
+    const walk = id => { all.push(id); for (const c of (childMapMap.get(id) || [])) walk(c) }
+    walk(state.activeGen)
+    const ordered = all
+      .filter(id => (byIdMap.get(id).personal > 0))
+      .sort((a, b) => (byIdMap.get(a).order ?? 0) - (byIdMap.get(b).order ?? 0))
+
+    const wrap = document.createElement('div')
+    wrap.className = 'view-list'
+    const head = document.createElement('div')
+    head.className = 'view-head'
+    head.innerHTML = `${esc(gen.name)} 旗下本月有訂購名單（${ordered.length} 人）`
+    wrap.appendChild(head)
+
+    if (!ordered.length) {
+      const empty = document.createElement('div')
+      empty.className = 'empty'
+      empty.textContent = '本月此第一代旗下無人訂購'
+      wrap.appendChild(empty)
+      boxEl.appendChild(wrap)
+      return
+    }
+
+    for (const id of ordered) {
+      const n = byIdMap.get(id)
+      const row = document.createElement('div')
+      row.className = 'list-row card ' + rankClass(n.title)
+      const lineOn = state.lineOn
+      row.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span>` +
+        `<span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span>` +
+        `<span class="pf">${fmtNum(n.personal)}</span>`
+      row.addEventListener('click', () => {
+        if (lineOn) {
+          // [線] 開啟：顯示「第一代→此人」垂直線
+          state.view = 'line'
+          state.lineTarget = id
+          renderPyramid()
+        } else {
+          showModal(n)
+        }
+      })
+      wrap.appendChild(row)
+    }
+    boxEl.appendChild(wrap)
+  }
+
+  // ===== 垂直線：第一代 → 目標人，每一層都顯示 =====
+  function renderLineView(boxEl, byIdMap, childMapMap, rootId) {
+    const target = byIdMap.get(state.lineTarget)
+    if (!target) { renderHomeView(boxEl, byIdMap, rootId); return }
+
+    // 由目標往父層回溯，直到第一代或根，得到鏈（不含根/第一代上半）。反向使第一代在上。
+    const chain = []
+    let cur = state.lineTarget
+    let guard = 0
+    while (cur && guard++ < 100) {
+      chain.push(cur)
+      const node = byIdMap.get(cur)
+      if (cur === state.activeGen || cur === rootId) break
+      cur = node.parentId
+    }
+    chain.reverse()
+
+    const wrap = document.createElement('div')
+    wrap.className = 'view-list'
+    const head = document.createElement('div')
+    head.className = 'view-head'
+    head.innerHTML = `垂直線：${esc(byIdMap.get(state.activeGen).name)} → ${esc(target.name)}`
+    wrap.appendChild(head)
+
+    for (const id of chain) {
+      const n = byIdMap.get(id)
+      const noOrder = n.personal === 0
+      const row = document.createElement('div')
+      row.className = 'line-node card ' + rankClass(n.title) + (noOrder ? ' no-order' : '')
+      const orderHtml = n.personal > 0
+        ? `<span class="pf">${fmtNum(n.personal)}</span>`
+        : (n.expiry ? `<span class="expiry">${formatYyyyMm(n.expiry)}</span>` : '')
+      row.innerHTML =
+        `<span class="gen">${dep2(n.depth)}</span>` +
+        `<span class="name">${esc(n.name)}</span>` +
+        `<span class="title">[${esc(n.title)}]</span>` + orderHtml
+      if (id !== state.activeGen) row.classList.add('leaf')
+      row.addEventListener('click', () => showModal(n))
+      wrap.appendChild(row)
+    }
+    boxEl.appendChild(wrap)
+  }
 }
 
 function showModal(n) {
@@ -569,178 +604,24 @@ function renderWarnPreview() {
 $('modalClose').addEventListener('click', () => $('modal').classList.add('hidden'))
 $('modal').addEventListener('click', e => { if (e.target === $('modal')) $('modal').classList.add('hidden') })
 
-/* ============ 金字塔縮放／平移 ============ */
-const pyramidEl = $('pyramid')
-const viewport = $('pyramidViewport')
+/* ============ 瀏覽控制：［林莉雯］回首頁、［線］切換 ============ */
+$('homeBtn').addEventListener('click', goHome)
+$('lineBtn').addEventListener('click', toggleLine)
 
-function applyZoom() {
-  const z = state.zoom
-  pyramidEl.style.transform = `translate(${z.tx}px, ${z.ty}px) scale(${z.scale})`
-  $('zoomLevel').textContent = Math.round(z.scale * 100) + '%'
-}
-// 進入/導覽時的「適中比例」：完整縮放但避免過度縮小一片白；之後用手勢/滾輪縮放
-function fitPyramid() {
-  const z = state.zoom
-  if (z.userAdjusted) { applyZoom(); return }
-  pyramidEl.style.transform = 'none'
-  const vw = viewport.clientWidth || window.innerWidth || 1
-  const vh = viewport.clientHeight || window.innerHeight || 1
-  const nw = pyramidEl.scrollWidth || 1
-  const nh = pyramidEl.scrollHeight || 1
-  let scale = Math.min(vw / nw, vh / nh, 1)
-  // 適中下限 0.3：不會一進到極小一片白，仍可看到整體；再用手勢放大
-  scale = Math.max(0.3, Math.min(z.max, scale))
-  z.scale = scale
-  const tw = nw * scale
-  const th = nh * scale
-  z.tx = Math.max(0, (vw - tw) / 2)
-  z.ty = Math.max(0, (vh - th) / 2)
-  applyZoom()
-}
-// 將「當前視圖」完整縮放進畫面（「全」鍵，不拘束下限）
-function fitToView() {
-  const z = state.zoom
-  pyramidEl.style.transform = 'none'
-  const vw = viewport.clientWidth || window.innerWidth || 1
-  const vh = viewport.clientHeight || window.innerHeight || 1
-  const nw = pyramidEl.scrollWidth || 1
-  const nh = pyramidEl.scrollHeight || 1
-  let scale = Math.min(vw / nw, vh / nh, 1)
-  scale = Math.max(0.05, Math.min(z.max, scale))
-  z.scale = scale
-  const tw = nw * scale
-  const th = nh * scale
-  z.tx = Math.max(0, (vw - tw) / 2)
-  z.ty = Math.max(0, (vh - th) / 2)
-  applyZoom()
-}
-// 一鍵「全視」：強制把當前視圖縮到完整顯示（全部名單）
-function fitAll() {
-  state.zoom.userAdjusted = false
-  fitToView()
-}
-function resetZoom() {
-  const z = state.zoom
-  z.scale = 1; z.tx = 0; z.ty = 0; z.userAdjusted = false
-  applyZoom()
-}
-function zoomBy(factor) {
-  const z = state.zoom
-  z.userAdjusted = true
-  const vw = viewport.clientWidth, vh = viewport.clientHeight
-  const cx = vw / 2, cy = vh / 2
-  const px = (cx - z.tx) / z.scale
-  const py = (cy - z.ty) / z.scale
-  const ns = Math.min(z.max, Math.max(z.min, z.scale * factor))
-  z.scale = ns
-  z.tx = cx - px * ns
-  z.ty = cy - py * ns
-  applyZoom()
-}
-
-let pinchDist = 0
-let panning = false
-let panStartX = 0, panStartY = 0
-let panTx = 0, panTy = 0
-
-$('fitAllBtn').addEventListener('click', fitAll)
-
-// 模式切換：下一代 / 樹（互斥，再點一次取消）
-function setMode(mode) {
-  state.mode = (state.mode === mode) ? 'none' : mode
-  state.navRoot = null
-  state.zoom.userAdjusted = false
+// ［林莉雯］：回到首頁（林莉雯 + 第一代）
+function goHome() {
+  state.view = 'home'
+  state.activeGen = null
+  state.lineTarget = null
+  state.lineOn = false
   renderPyramid()
 }
-$('modeNextBtn').addEventListener('click', () => setMode('next'))
-$('modeTreeBtn').addEventListener('click', () => setMode('tree'))
 
-// 滑鼠滾輪縮放
-viewport.addEventListener('wheel', e => {
-  e.preventDefault()
-  zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15)
-}, { passive: false })
-
-// 觸控：雙指縮放 + 單指平移（處理不同時放開的跳動）
-let touchMode = 'idle'   // 'idle' | 'pan' | 'pinch'
-function endTouchGesture() {
-  touchMode = 'idle'
-  panning = false
-  pinchDist = 0
-  viewport.classList.remove('panning')
+// ［線］：切換開啟/關閉（開啟時點『展開名單』裡的名字 → 顯示垂直線）
+function toggleLine() {
+  state.lineOn = !state.lineOn
+  renderPyramid()
 }
-viewport.addEventListener('touchstart', e => {
-  const z = state.zoom
-  if (e.touches.length >= 2) {
-    touchMode = 'pinch'
-    pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
-                           e.touches[0].clientY - e.touches[1].clientY)
-  } else if (e.touches.length === 1 && !panning) {
-    // 進入單指平移時才重置基準，避免由縮放轉平移時跳動
-    touchMode = 'pan'
-    panning = true
-    panStartX = e.touches[0].clientX
-    panStartY = e.touches[0].clientY
-    panTx = z.tx
-    panTy = z.ty
-    viewport.classList.add('panning')
-  }
-}, { passive: true })
-
-viewport.addEventListener('touchmove', e => {
-  const z = state.zoom
-  if (e.touches.length >= 2) {
-    touchMode = 'pinch'
-    const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX,
-                         e.touches[0].clientY - e.touches[1].clientY)
-    if (pinchDist > 0) zoomBy(d / pinchDist)
-    pinchDist = d
-  } else if (e.touches.length === 1) {
-    if (touchMode === 'pinch') {
-      // 由雙指轉單指：以單指新基準重新開始平移，避免手指殘留造成跳動
-      touchMode = 'pan'
-      panStartX = e.touches[0].clientX
-      panStartY = e.touches[0].clientY
-      panTx = z.tx
-      panTy = z.ty
-    }
-    if (touchMode === 'pan') {
-      z.userAdjusted = true
-      z.tx = panTx + (e.touches[0].clientX - panStartX)
-      z.ty = panTy + (e.touches[0].clientY - panStartY)
-      applyZoom()
-    }
-  }
-}, { passive: true })
-
-viewport.addEventListener('touchend', e => {
-  if (e.touches.length === 0) {
-    endTouchGesture()
-  } else if (e.touches.length === 1 && touchMode === 'pinch') {
-    // 兩指變一指：重置該指為平移基準
-    touchMode = 'pan'
-    const t = e.touches[0]
-    panStartX = t.clientX; panStartY = t.clientY
-    panTx = state.zoom.tx; panTy = state.zoom.ty
-  }
-})
-viewport.addEventListener('touchcancel', endTouchGesture)
-
-// 滑鼠拖曳平移
-viewport.addEventListener('mousedown', e => {
-  panning = true
-  viewport.classList.add('panning')
-  panStartX = e.clientX; panStartY = e.clientY
-  panTx = state.zoom.tx; panTy = state.zoom.ty
-})
-window.addEventListener('mousemove', e => {
-  if (!panning) return
-  state.zoom.userAdjusted = true
-  state.zoom.tx = panTx + (e.clientX - panStartX)
-  state.zoom.ty = panTy + (e.clientY - panStartY)
-  applyZoom()
-})
-window.addEventListener('mouseup', () => { panning = false; viewport.classList.remove('panning') })
 
 /* ============ 密碼顯示開關 ============ */
 document.querySelector('.pw-toggle').addEventListener('click', e => {

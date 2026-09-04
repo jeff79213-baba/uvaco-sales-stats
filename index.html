@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>葡眾業績統計 — 金字塔</title>
-        <link rel="stylesheet" href="style.css?v=20260904c">
+        <link rel="stylesheet" href="style.css?v=20260905">
 </head>
 <body>
 
@@ -48,17 +48,13 @@
   <main>
     <div id="pyramidTab">
       <div class="mode-bar">
-        <button id="modeNextBtn">下一代</button>
-        <button id="modeTreeBtn">樹</button>
+        <button id="homeBtn">林莉雯</button>
+        <button id="lineBtn">線</button>
       </div>
       <div id="pyramidViewport">
         <div id="pyramid"></div>
       </div>
       <div id="pyramidEmpty" class="hidden">此月份尚無資料，請到「後台設定」貼上組織資料。</div>
-      <div class="zoom-level hidden" id="zoomLevel">100%</div>
-      <div class="zoom-control hidden">
-        <button id="fitAllBtn" title="回到全部名單">全</button>
-      </div>
     </div>
 
     <div id="adminTab" class="hidden">
@@ -130,6 +126,6 @@ window.addEventListener('error', function (e) {
 </script>
 <script type="module" src="parse.js"></script>
 <script type="module" src="expiry.js"></script>
-        <script src="app.js?v=20260904c"></script>
+        <script src="app.js?v=20260905"></script>
 </body>
 </html>

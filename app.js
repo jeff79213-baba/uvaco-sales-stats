@@ -178,8 +178,8 @@ function renderPyramid() {
   function onPersonClick(key) {
     const n = byId.get(key)
     if (state.mode === 'next') {
-      // 下一代模式：以該人為新根，顯示其下一代（歷史記保存供「上一層」）
-      if (state.navStack[state.navStack.length - 1] !== key) state.navStack.push(key)
+      // 下一代模式：以該人為新根，顯示其下一代；先把目前根記為「上一層」歷史
+      if (state.navStack[state.navStack.length - 1] !== state.navRoot) state.navStack.push(state.navRoot)
       state.navRoot = key
       renderPyramid()
     } else if (state.mode === 'tree') {
@@ -673,9 +673,9 @@ $('goHomeBtn').addEventListener('click', goHome)
 
 // 上一層（下一代模式逐層返回）
 function goUp() {
-  const n = state.navStack.pop()
-  if (!n) { goHome(); return }
-  state.navRoot = n
+  const prev = state.navStack.pop()
+  if (!prev) { goHome(); return }
+  state.navRoot = prev
   state.zoom.userAdjusted = false
   renderPyramid()
 }

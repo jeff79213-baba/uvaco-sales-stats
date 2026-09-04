@@ -251,7 +251,12 @@ function renderPyramid() {
   if (state.navRoot && !byId.has(state.navRoot)) { state.navRoot = null; state.navStack = [] }
   const rootN = byId.get(state.navRoot || globalRootId)
   window.__dbg = { rootId: (state.navRoot || globalRootId), byIdSize: byId.size,
-                   rootKids: (childMap.get(rootN.id) || []).map(id => byId.get(id)?.name) }
+                   rootKids: (childMap.get(rootN.id) || []).map(id => byId.get(id)?.name),
+                   top: [...byId.keys()].filter(id => byId.get(id).depth <= 1)
+                          .slice(0, 12).map(id => ({ id, name: byId.get(id).name,
+                                                     par: byId.get(id).parentId,
+                                                     kids: (childMap.get(id) || []).length,
+                                                     depth: byId.get(id).depth })) }
 
   const rootEl = document.createElement('div')
   rootEl.className = 'pylon root'

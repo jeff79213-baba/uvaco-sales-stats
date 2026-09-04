@@ -250,6 +250,8 @@ function renderPyramid() {
   // 目前焦點根（預設林莉雯 = 全域根），若失效則回落全域根
   if (state.navRoot && !byId.has(state.navRoot)) { state.navRoot = null; state.navStack = [] }
   const rootN = byId.get(state.navRoot || globalRootId)
+  window.__dbg = { rootId: (state.navRoot || globalRootId), byIdSize: byId.size,
+                   rootKids: (childMap.get(rootN.id) || []).map(id => byId.get(id)?.name) }
 
   const rootEl = document.createElement('div')
   rootEl.className = 'pylon root'

@@ -264,8 +264,8 @@ function renderPyramid() {
   })
   rootEl.appendChild(rootCard)
 
-  if (state.mode === 'tree') {
-    // ===== 樹模式：以焦點根為頂，顯示其下整棵樹（非整個大組織）=====
+  if (state.mode === 'tree' && state.navRoot) {
+    // ===== 樹模式（已選擇某人）：以該人為頂，顯示其下整棵樹 =====
     const listWrap = document.createElement('div')
     listWrap.className = 'expanded-list'
     const kids = childMap.get(rootKey) || []
@@ -277,7 +277,7 @@ function renderPyramid() {
     }
     rootEl.appendChild(listWrap)
   } else {
-    // ===== 總覽：根卡 + 一排所有下一代（點人顯示資料）=====
+    // ===== 總覽 / 樹模式頂層：根卡 + 一排第一代，點人名看資料或切入子樹 =====
     const row = document.createElement('div')
     row.className = 'children fg-row'
     const kids = (childMap.get(rootKey) || []).filter(id => byId.has(id))

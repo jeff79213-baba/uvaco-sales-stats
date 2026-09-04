@@ -174,16 +174,17 @@ function renderPyramid() {
     return ''
   }
 
-  // 點擊個人卡的統一行為：看目前 mode
-  function onPersonClick(n) {
+// 點擊個人卡的統一行為：看目前 mode（以 byId 的 key 定位，避免成員物件沒有 id 欄位）
+  function onPersonClick(key) {
+    const n = byId.get(key)
     if (state.mode === 'next') {
       // 下一代模式：以該人為新根，顯示其下一代（歷史記保存供「上一層」）
-      if (state.navStack[state.navStack.length - 1] !== n.id) state.navStack.push(n.id)
-      state.navRoot = n.id
+      if (state.navStack[state.navStack.length - 1] !== key) state.navStack.push(key)
+      state.navRoot = key
       renderPyramid()
     } else if (state.mode === 'tree') {
-      // 樹模式：以該人為根，展開其下方完整樹狀圖
-      state.navRoot = n.id
+      // 樹模式：以該人為根，顯示其下方整棵樹
+      state.navRoot = key
       state.navStack = []
       renderPyramid()
     } else {
@@ -201,7 +202,7 @@ function renderPyramid() {
     card.innerHTML =
       `<span class="gen">${dep2(n.depth)}</span><span class="name">${esc(n.name)}</span>` +
       `<span class="title">[${esc(n.title)}]</span>` + salesHtml
-    card.addEventListener('click', () => onPersonClick(n))
+    card.addEventListener('click', () => onPersonClick(id))
     return card
   }
 
@@ -218,7 +219,7 @@ function renderPyramid() {
       `<span class="gen-tag-label">${dep2(c.depth)}</span>` +
       `<span class="name">${esc(c.name)}</span>` +
       `<span class="title">[${esc(c.title)}]</span>` + orderHtml
-    card.addEventListener('click', () => onPersonClick(c))
+    card.addEventListener('click', () => onPersonClick(id))
     return card
   }
 
@@ -249,14 +250,8 @@ function renderPyramid() {
 
   // 目前焦點根（預設林莉雯 = 全域根），若失效則回落全域根
   if (state.navRoot && !byId.has(state.navRoot)) { state.navRoot = null; state.navStack = [] }
-  const rootN = byId.get(state.navRoot || globalRootId)
-  window.__dbg = { rootId: (state.navRoot || globalRootId), byIdSize: byId.size,
-                   rootKids: (childMap.get(rootN.id) || []).map(id => byId.get(id)?.name),
-                   top: [...byId.keys()].filter(id => byId.get(id).depth <= 1)
-                          .slice(0, 12).map(id => ({ id, name: byId.get(id).name,
-                                                     par: byId.get(id).parentId,
-                                                     kids: (childMap.get(id) || []).length,
-                                                     depth: byId.get(id).depth })) }
+  const rootKey = state.navRoot || globalRootId
+  const rootN = byId.get(rootKey)
 
   const rootEl = document.createElement('div')
   rootEl.className = 'pylon root'
@@ -272,7 +267,7 @@ function renderPyramid() {
 
   if (state.mode === 'tree') {
     // ===== 樹模式：根下方整棵完整樹狀圖 =====
-    const kids = childMap.get(rootN.id) || []
+    const kids = childMap.get(rootKey) || []
     const listWrap = document.createElement('div')
     listWrap.className = 'expanded-list'
     if (kids.length) {
@@ -286,7 +281,7 @@ function renderPyramid() {
     // ===== 下一代 / 無模式：根卡 + 一排所有下一代 =====
     const row = document.createElement('div')
     row.className = 'children fg-row'
-    const kids = (childMap.get(rootN.id) || []).filter(id => byId.has(id))
+    const kids = (childMap.get(rootKey) || []).filter(id => byId.has(id))
     if (state.mode === 'next') {
       // 下一代模式：點子繼續下鑽，沒資料時給提示
       for (const k of kids) row.appendChild(firstGenCard(k))
@@ -301,10 +296,6 @@ function renderPyramid() {
       for (const k of kids) row.appendChild(firstGenCard(k))
     }
     rootEl.appendChild(row)
-    if (state.mode === 'next' && kids.length) {
-      // 下一代模式也顯示該根的整棵樹供想看的用户？不，僅下一層。
-      // 維持僅一層
-    }
   }
   box.appendChild(rootEl)
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>葡眾業績統計 — 金字塔</title>
-        <link rel="stylesheet" href="style.css?v=20260903i">
+        <link rel="stylesheet" href="style.css?v=20260904">
 </head>
 <body>
 
@@ -47,12 +47,11 @@
 
   <main>
     <div id="pyramidTab">
-      <div class="legend">
-        <span><i class="sw s-white"></i>當月有個人業績</span>
-        <span><i class="sw s-orange"></i>剩 2 個月到期</span>
-        <span><i class="sw s-red"></i>最後 1 個月到期</span>
-        <span><i class="sw s-dot"></i>銜接（無業績）</span>
-        <button id="goHomeBtn" class="hidden" title="回到林莉雯總覽">← 回到林莉雯</button>
+      <div class="mode-bar">
+        <button id="modeNextBtn">下一代</button>
+        <button id="modeTreeBtn">樹</button>
+        <button id="upBtn" title="返回上一層">上一層</button>
+        <button id="goHomeBtn" title="回到林莉雯總覽">← 林莉雯</button>
       </div>
       <div id="pyramidViewport">
         <div id="pyramid"></div>
@@ -60,8 +59,6 @@
       <div id="pyramidEmpty" class="hidden">此月份尚無資料，請到「後台設定」貼上組織資料。</div>
       <div class="zoom-level hidden" id="zoomLevel">100%</div>
       <div class="zoom-control hidden">
-        <button id="zoomIn" title="放大">＋</button>
-        <button id="zoomOut" title="縮小">－</button>
         <button id="fitAllBtn" title="回到全部名單">全</button>
       </div>
     </div>
@@ -135,6 +132,6 @@ window.addEventListener('error', function (e) {
 </script>
 <script type="module" src="parse.js"></script>
 <script type="module" src="expiry.js"></script>
-        <script src="app.js?v=20260903i"></script>
+        <script src="app.js?v=20260904"></script>
 </body>
 </html>

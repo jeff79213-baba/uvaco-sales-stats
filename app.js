@@ -174,22 +174,15 @@ function renderPyramid() {
     return ''
   }
 
-// 點擊個人卡的統一行為：看目前 mode（以 byId 的 key 定位，避免成員物件沒有 id 欄位）
+// 點擊個人卡：依目前模式決定行為
   function onPersonClick(key) {
-    const n = byId.get(key)
-    if (state.mode === 'next') {
-      // 下一代模式：以該人為新根，顯示其下一代；先把目前根記為「上一層」歷史
-      if (state.navStack[state.navStack.length - 1] !== state.navRoot) state.navStack.push(state.navRoot)
+    if (state.mode === 'tree') {
+      // 樹模式：以該人為焦點根，顯示其下整棵樹（非整個大組織）
       state.navRoot = key
-      renderPyramid()
-    } else if (state.mode === 'tree') {
-      // 樹模式：以該人為根，顯示其下方整棵樹
-      state.navRoot = key
-      state.navStack = []
       renderPyramid()
     } else {
-      // 未選任何模式：僅顯示個人資料
-      showModal(n)
+      // 無 / 下一代：顯示該人資料
+      showModal(byId.get(key))
     }
   }
 
@@ -206,11 +199,11 @@ function renderPyramid() {
     return card
   }
 
-  // 渲染「所有人」卡片：有訂貨正常字色、沒訂貨灰名、翡翠/珍珠字色
+  // 樹節點卡（子樹內每個人）
   function memberCard(id) {
     const c = byId.get(id)
-    const card = document.createElement('div')
     const noOrder = c.personal === 0
+    const card = document.createElement('div')
     card.className = 'card gen-tag ' + rankClass(c.title) + (noOrder ? ' no-order' : '')
     const orderHtml = c.personal > 0
       ? `<span class="pf">${fmtNum(c.personal)}</span>`
@@ -223,7 +216,7 @@ function renderPyramid() {
     return card
   }
 
-  // 遞迴垂直渲染整棵子樹（所有人），畫出上下線
+  // 遞迴垂直渲染整棵子樹
   function renderSubtree(id) {
     const wrap = document.createElement('div')
     wrap.className = 'chain-node'
@@ -248,8 +241,7 @@ function renderPyramid() {
   }
   $('pyramidEmpty').classList.add('hidden')
 
-  // 目前焦點根（預設林莉雯 = 全域根），若失效則回落全域根
-  if (state.navRoot && !byId.has(state.navRoot)) { state.navRoot = null; state.navStack = [] }
+  // 樹模式：焦點根（預設全域根=整棵組織）
   const rootKey = state.navRoot || globalRootId
   const rootN = byId.get(rootKey)
 
@@ -261,15 +253,22 @@ function renderPyramid() {
     `<span class="gen">${dep2(rootN.depth)}</span><span class="name">${esc(rootN.name)}</span>` +
     `<span class="title">[${esc(rootN.title)}]</span>` +
     `<span class="pf">${fmtNum(rootN.personal)}</span>`
-  // 點根卡：顯示根個人資料
-  rootCard.addEventListener('click', () => showModal(rootN))
+  // 點根卡：顯示根資料；若已在子樹且點到根卡則回到整棵組織
+  rootCard.addEventListener('click', () => {
+    if (state.mode === 'tree' && rootKey !== globalRootId) {
+      state.navRoot = null
+      renderPyramid()
+    } else {
+      showModal(rootN)
+    }
+  })
   rootEl.appendChild(rootCard)
 
   if (state.mode === 'tree') {
-    // ===== 樹模式：根下方整棵完整樹狀圖 =====
-    const kids = childMap.get(rootKey) || []
+    // ===== 樹模式：以焦點根為頂，顯示其下整棵樹（非整個大組織）=====
     const listWrap = document.createElement('div')
     listWrap.className = 'expanded-list'
+    const kids = childMap.get(rootKey) || []
     if (kids.length) {
       for (const k of kids) listWrap.appendChild(renderSubtree(k))
     } else {
@@ -278,37 +277,21 @@ function renderPyramid() {
     }
     rootEl.appendChild(listWrap)
   } else {
-    // ===== 下一代 / 無模式：根卡 + 一排所有下一代 =====
+    // ===== 總覽：根卡 + 一排所有下一代（點人顯示資料）=====
     const row = document.createElement('div')
     row.className = 'children fg-row'
     const kids = (childMap.get(rootKey) || []).filter(id => byId.has(id))
-    if (state.mode === 'next') {
-      // 下一代模式：點子繼續下鑽，沒資料時給提示
-      for (const k of kids) row.appendChild(firstGenCard(k))
-      if (!kids.length) {
-        const empty = document.createElement('div')
-        empty.className = 'empty'
-        empty.textContent = '（此人無下一代）'
-        row.appendChild(empty)
-      }
-    } else {
-      // 無模式（預設）：點子只是看資料
-      for (const k of kids) row.appendChild(firstGenCard(k))
-    }
+    for (const k of kids) row.appendChild(firstGenCard(k))
     rootEl.appendChild(row)
   }
   box.appendChild(rootEl)
 
-  // 上一層按鈕顯示狀態
-  $('upBtn').classList.toggle('hidden', state.mode !== 'next' || state.navStack.length === 0)
-  // 回到林莉雯：只要不在林莉雯根就顯示
-  $('goHomeBtn').classList.toggle('hidden', state.mode !== 'next' || (state.navRoot || globalRootId) === globalRootId)
-  // 縮放控制只留「全」，固定視埠；所有模式都顯示
+  // 模式按鈕反白高亮
+  $('modeNextBtn')?.classList.toggle('active', state.mode === 'next')
+  $('modeTreeBtn')?.classList.toggle('active', state.mode === 'tree')
+  // 縮放控制只留「全」，固定視埠
   document.querySelector('.zoom-control').classList.toggle('hidden', false)
   $('zoomLevel').classList.toggle('hidden', false)
-  // 模式按鈕反白高亮狀態
-  $('modeNextBtn').classList.toggle('active', state.mode === 'next')
-  $('modeTreeBtn').classList.toggle('active', state.mode === 'tree')
   requestAnimationFrame(fitPyramid)
 }
 
@@ -662,33 +645,9 @@ let panTx = 0, panTy = 0
 
 $('fitAllBtn').addEventListener('click', fitAll)
 
-// 回到林莉雯：重置為總覽（林莉雯根）+ 重設縮放
-function goHome() {
-  state.navRoot = null
-  state.navStack = []
-  state.zoom.userAdjusted = false
-  renderPyramid()
-}
-$('goHomeBtn').addEventListener('click', goHome)
-
-// 上一層（下一代模式逐層返回）
-function goUp() {
-  const prev = state.navStack.pop()
-  if (!prev) { goHome(); return }
-  state.navRoot = prev
-  state.zoom.userAdjusted = false
-  renderPyramid()
-}
-$('upBtn').addEventListener('click', goUp)
-
 // 模式切換：下一代 / 樹（互斥，再點一次取消）
 function setMode(mode) {
-  if (state.mode === mode) {
-    state.mode = 'none'
-  } else {
-    state.mode = mode
-    state.navStack = []
-  }
+  state.mode = (state.mode === mode) ? 'none' : mode
   state.navRoot = null
   state.zoom.userAdjusted = false
   renderPyramid()
